@@ -19,6 +19,7 @@ public class GameScreen extends JPanel {
         // สร้างและเพิ่ม HUD
         setupHUD();
 
+        //ทดสอบเฉยๆ
         addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
@@ -30,9 +31,6 @@ public class GameScreen extends JPanel {
                 } else if (e.getKeyCode() == KeyEvent.VK_L) {
                     // กด L เพื่อทดสอบเสียชีวิต
                     loseLife();
-                } else if (e.getKeyCode() == KeyEvent.VK_G) {
-                    // กด G เพื่อทดสอบได้ชีวิต
-                    gainLife();
                 }
             }
         });
@@ -80,9 +78,9 @@ public class GameScreen extends JPanel {
 
         // วาดข้อความทดสอบ
         g.setColor(Color.WHITE);
-        g.setFont(FontManager.getContraFont(16f));
-        g.drawString("GAME AREA - Press A to add score, L to lose life, G to gain life", 100, 350);
-        g.drawString("Press ENTER to go to Game Over", 250, 380);
+        g.setFont(FontManager.getContraFont(12f));
+        g.drawString("GAME AREA - Press A to add score, L to lose life", 100, 350);
+        g.drawString("Press ENTER to go to Game Over", 100, 380);
     }
 
 

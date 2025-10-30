@@ -153,7 +153,6 @@ public class StartScreen extends JPanel {
         }
 
         drawPressStart(g2d);
-        drawControlsInfo(g2d);
     }
 
     private void drawBackground(Graphics2D g2d) {
@@ -221,12 +220,6 @@ public class StartScreen extends JPanel {
             g2d.setFont(new Font("Arial", Font.BOLD, 20));
             g2d.drawString("PRESS ENTER TO START", 280, 520);
         }
-    }
-
-    private void drawControlsInfo(Graphics2D g2d) {
-        g2d.setColor(Color.GRAY);
-        g2d.setFont(new Font("Arial", Font.PLAIN, 12));
-        g2d.drawString("F1: Choose Image File | 1: 1 Player | 2: 2 Players | ESC: Exit", 200, 580);
     }
 
 }
