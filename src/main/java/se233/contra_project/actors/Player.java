@@ -34,9 +34,6 @@ public class Player extends Entity {
         this.prone = false;
         this.lives = 3; // Start with 3 lives as per requirements
         this.shootCooldown = 0;
-
-        // Initialize sprite (placeholder - actual sprite loading would depend on assets)
-        // this.sprite = new Sprite("path/to/player.png", PLAYER_WIDTH, PLAYER_HEIGHT);
     }
 
     @Override
