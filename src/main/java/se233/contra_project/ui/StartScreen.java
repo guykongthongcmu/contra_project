@@ -110,10 +110,6 @@ public class StartScreen extends JPanel {
                     case KeyEvent.VK_ESCAPE:
                         System.exit(0);
                         break;
-                    case KeyEvent.VK_F1:
-                        chooseFileManually();
-                        repaint();
-                        break;
                 }
             }
         });
