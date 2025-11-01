@@ -111,6 +111,18 @@ public class StartScreen extends StackPane {
                 case SPACE:
                     startGame();
                     break;
+                case DIGIT1:
+                case NUMPAD1:
+                    startGameAtStage(1);
+                    break;
+                case DIGIT2:
+                case NUMPAD2:
+                    startGameAtStage(2);
+                    break;
+                case DIGIT3:
+                case NUMPAD3:
+                    startGameAtStage(3);
+                    break;
                 case ESCAPE:
                     System.exit(0);
                     break;
@@ -132,10 +144,13 @@ public class StartScreen extends StackPane {
     }
 
     private void startGame() {
-        // Signal to Launcher to switch to GameScreen
+        startGameAtStage(1);
+    }
+
+    private void startGameAtStage(int stageIndex) {
         if (launcher != null) {
-            launcher.switchToGameScreen();
-            System.out.println("Switching to GameScreen...");
+            launcher.switchToStage(stageIndex);
+            System.out.println("Switching to Stage " + stageIndex + "...");
         } else {
             System.out.println("Launcher is null!");
         }

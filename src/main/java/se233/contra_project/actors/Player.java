@@ -3,7 +3,6 @@ package se233.contra_project.actors;
 import se233.contra_project.core.Entity;
 import se233.contra_project.core.components.Sprite;
 import se233.contra_project.core.components.SpriteAnimation;
-import javafx.geometry.Point2D;
 
 /**
  * Player class represents the controllable character
@@ -11,14 +10,16 @@ import javafx.geometry.Point2D;
  */
 public class Player extends Entity {
     private static final double PLAYER_SPEED = 200.0; // pixels per second
-    private static final double PLAYER_WIDTH = 32.0;
-    private static final double PLAYER_HEIGHT = 32.0;
+    private static final double PLAYER_WIDTH = 48.0;
+    private static final double PLAYER_HEIGHT = 48.0;
     private static final double JUMP_FORCE = -400.0; // negative for upward
     private static final double GRAVITY = 800.0; // pixels per second squared
 
     private Sprite sprite;
+    private SpriteAnimation idleAnimation;
     private SpriteAnimation walkAnimation;
-    private SpriteAnimation shootAnimation;
+    private SpriteAnimation jumpAnimation;
+    private SpriteAnimation proneAnimation;
 
     private boolean facingRight;
     private boolean onGround;
@@ -26,6 +27,7 @@ public class Player extends Entity {
     private int lives;
     private double shootCooldown;
     private static final double SHOOT_COOLDOWN_TIME = 0.2; // seconds between shots
+    private double groundLevel = 400.0;
 
     public Player(double x, double y) {
         super(x, y, PLAYER_WIDTH, PLAYER_HEIGHT);
@@ -54,8 +56,8 @@ public class Player extends Entity {
         double newY = this.position.getY() + this.velocity.getY() * deltaTime;
 
         // Basic ground collision (simplified)
-        if (newY >= 400) { // Assuming ground at y=400
-            newY = 400;
+        if (newY >= groundLevel) {
+            newY = groundLevel;
             this.setVelocity(this.velocity.getX(), 0);
             onGround = true;
         } else {
@@ -64,27 +66,24 @@ public class Player extends Entity {
 
         this.setPosition(newX, newY);
 
-        // Update sprite position and animation
-        if (sprite != null) {
-            sprite.setPosition(newX, newY);
-        }
-
-        // Update animations
-        if (walkAnimation != null) {
-            walkAnimation.update(System.nanoTime());
-        }
-        if (shootAnimation != null) {
-            shootAnimation.update(System.nanoTime());
-        }
+        updateAnimations();
     }
 
     /**
      * Move player left
      */
     public void moveLeft() {
-        if (!prone) {
+        if (prone) {
+            return;
+        }
+        if (this.velocity.getX() != -PLAYER_SPEED) {
             this.setVelocity(-PLAYER_SPEED, this.velocity.getY());
+        }
+        if (facingRight) {
             facingRight = false;
+        }
+        if (onGround) {
+            playWalkAnimation();
         }
     }
 
@@ -92,9 +91,17 @@ public class Player extends Entity {
      * Move player right
      */
     public void moveRight() {
-        if (!prone) {
+        if (prone) {
+            return;
+        }
+        if (this.velocity.getX() != PLAYER_SPEED) {
             this.setVelocity(PLAYER_SPEED, this.velocity.getY());
+        }
+        if (!facingRight) {
             facingRight = true;
+        }
+        if (onGround) {
+            playWalkAnimation();
         }
     }
 
@@ -102,7 +109,12 @@ public class Player extends Entity {
      * Stop horizontal movement
      */
     public void stopMoving() {
-        this.setVelocity(0, this.velocity.getY());
+        if (Math.abs(this.velocity.getX()) > 1e-3) {
+            this.setVelocity(0, this.velocity.getY());
+        }
+        if (!prone && onGround) {
+            playIdleAnimation();
+        }
     }
 
     /**
@@ -112,6 +124,9 @@ public class Player extends Entity {
         if (onGround && !prone) {
             this.setVelocity(this.velocity.getX(), JUMP_FORCE);
             onGround = false;
+            if (jumpAnimation != null) {
+                playJumpAnimation();
+            }
         }
     }
 
@@ -119,10 +134,7 @@ public class Player extends Entity {
      * Toggle prone position
      */
     public void toggleProne() {
-        prone = !prone;
-        if (prone) {
-            this.setVelocity(0, this.velocity.getY());
-        }
+        setProne(!prone);
     }
 
     /**
@@ -157,11 +169,158 @@ public class Player extends Entity {
     public int getLives() { return lives; }
 
     public Sprite getSprite() { return sprite; }
-    public void setSprite(Sprite sprite) { this.sprite = sprite; }
+    public void setSprite(Sprite sprite) {
+        this.sprite = sprite;
+        if (sprite != null) {
+            this.width = sprite.getWidth();
+            this.height = sprite.getHeight();
+            sprite.setPosition(this.position.getX(), this.position.getY());
+        }
+    }
+
+    public SpriteAnimation getIdleAnimation() { return idleAnimation; }
+    public void setIdleAnimation(SpriteAnimation idleAnimation) {
+        this.idleAnimation = idleAnimation;
+        if (idleAnimation != null) {
+            idleAnimation.stop();
+        }
+    }
 
     public SpriteAnimation getWalkAnimation() { return walkAnimation; }
-    public void setWalkAnimation(SpriteAnimation walkAnimation) { this.walkAnimation = walkAnimation; }
+    public void setWalkAnimation(SpriteAnimation walkAnimation) {
+        this.walkAnimation = walkAnimation;
+        if (walkAnimation != null) {
+            walkAnimation.stop();
+        }
+    }
 
-    public SpriteAnimation getShootAnimation() { return shootAnimation; }
-    public void setShootAnimation(SpriteAnimation shootAnimation) { this.shootAnimation = shootAnimation; }
+    public SpriteAnimation getJumpAnimation() { return jumpAnimation; }
+    public void setJumpAnimation(SpriteAnimation jumpAnimation) {
+        this.jumpAnimation = jumpAnimation;
+        if (jumpAnimation != null) {
+            jumpAnimation.stop();
+            jumpAnimation.setOnAnimationEnd(() -> {
+                if (!onGround) {
+                    jumpAnimation.play();
+                    return;
+                }
+                if (prone) {
+                    playProneAnimation();
+                } else if (Math.abs(this.velocity.getX()) > 1e-3) {
+                    playWalkAnimation();
+                } else {
+                    playIdleAnimation();
+                }
+            });
+        }
+    }
+
+    public SpriteAnimation getProneAnimation() { return proneAnimation; }
+    public void setProneAnimation(SpriteAnimation proneAnimation) {
+        this.proneAnimation = proneAnimation;
+        if (proneAnimation != null) {
+            proneAnimation.stop();
+        }
+    }
+
+    public void startIdleAnimation() {
+        playIdleAnimation();
+    }
+
+    public void setGroundLevel(double groundLevel) {
+        this.groundLevel = groundLevel;
+    }
+
+    public double getGroundLevel() {
+        return groundLevel;
+    }
+
+    public void setProne(boolean value) {
+        if (this.prone == value) {
+            return;
+        }
+        this.prone = value;
+        if (prone) {
+            this.setVelocity(0, this.velocity.getY());
+            playProneAnimation();
+        } else if (this.velocity.getX() != 0) {
+            playWalkAnimation();
+        } else {
+            playIdleAnimation();
+        }
+    }
+
+    private void updateAnimations() {
+        long now = System.nanoTime();
+        if (idleAnimation != null && idleAnimation.isPlaying()) {
+            idleAnimation.update(now);
+            setCurrentSpriteFrame(idleAnimation.getCurrentFrame());
+        } else if (walkAnimation != null && walkAnimation.isPlaying()) {
+            walkAnimation.update(now);
+            setCurrentSpriteFrame(walkAnimation.getCurrentFrame());
+        } else if (jumpAnimation != null && jumpAnimation.isPlaying()) {
+            jumpAnimation.update(now);
+            setCurrentSpriteFrame(jumpAnimation.getCurrentFrame());
+        } else if (proneAnimation != null && proneAnimation.isPlaying()) {
+            proneAnimation.update(now);
+            setCurrentSpriteFrame(proneAnimation.getCurrentFrame());
+        } else if (sprite != null) {
+            sprite.setPosition(this.position.getX(), this.position.getY());
+        }
+    }
+
+    private void setCurrentSpriteFrame(javafx.scene.image.Image frame) {
+        if (sprite != null && frame != null) {
+            sprite.setImage(frame);
+            sprite.setPosition(this.position.getX(), this.position.getY());
+        }
+    }
+
+    private void playIdleAnimation() {
+        if (idleAnimation != null) {
+            switchAnimation(idleAnimation);
+        } else {
+            switchAnimation(null);
+        }
+    }
+
+    private void playWalkAnimation() {
+        if (walkAnimation != null) {
+            switchAnimation(walkAnimation);
+        } else {
+            playIdleAnimation();
+        }
+    }
+
+    private void playJumpAnimation() {
+        if (jumpAnimation != null) {
+            switchAnimation(jumpAnimation);
+        }
+    }
+
+    private void playProneAnimation() {
+        if (proneAnimation != null) {
+            switchAnimation(proneAnimation);
+        } else {
+            switchAnimation(null);
+        }
+    }
+
+    private void switchAnimation(SpriteAnimation target) {
+        if (target != null && !target.isPlaying()) {
+            target.play();
+        }
+        if (idleAnimation != null && idleAnimation != target && idleAnimation.isPlaying()) {
+            idleAnimation.stop();
+        }
+        if (walkAnimation != null && walkAnimation != target && walkAnimation.isPlaying()) {
+            walkAnimation.stop();
+        }
+        if (jumpAnimation != null && jumpAnimation != target && jumpAnimation.isPlaying()) {
+            jumpAnimation.stop();
+        }
+        if (proneAnimation != null && proneAnimation != target && proneAnimation.isPlaying()) {
+            proneAnimation.stop();
+        }
+    }
 }

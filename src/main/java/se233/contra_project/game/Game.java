@@ -7,7 +7,7 @@ import se233.contra_project.bosses.Boss;
 import se233.contra_project.core.Entity;
 import se233.contra_project.game.input.InputHandler;
 import se233.contra_project.game.systems.RenderSystem;
-import se233.contra_project.ui.GameScreen;
+import se233.contra_project.ui.BaseStageScreen;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,7 +16,7 @@ import java.util.List;
  * Main game class that manages the game loop, entities, and game state
  */
 public class Game {
-    private GameScreen gameScreen;
+    private BaseStageScreen stageScreen;
     private InputHandler inputHandler;
     private RenderSystem renderSystem;
 
@@ -33,8 +33,8 @@ public class Game {
     private static final int TARGET_FPS = 60;
     private static final double TARGET_FRAME_TIME = 1.0 / TARGET_FPS;
 
-    public Game(GameScreen gameScreen) {
-        this.gameScreen = gameScreen;
+    public Game(BaseStageScreen stageScreen) {
+        this.stageScreen = stageScreen;
         this.inputHandler = new InputHandler();
         this.renderSystem = new RenderSystem();
 
@@ -194,7 +194,7 @@ public class Game {
      */
     private void render() {
         // Trigger repaint on game screen
-        if (gameScreen != null) {
+        if (stageScreen != null) {
             // JavaFX doesn't use repaint() - drawing is handled by the animation timer
         }
     }

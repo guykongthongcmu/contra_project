@@ -32,6 +32,13 @@ public class Sprite {
         this.imageView.setFitHeight(height);
     }
 
+    public void setImage(Image image) {
+        this.image = image;
+        this.imageView.setImage(image);
+        this.imageView.setFitWidth(width);
+        this.imageView.setFitHeight(height);
+    }
+
     /**
      * Set the position of the sprite
      * @param x x-coordinate

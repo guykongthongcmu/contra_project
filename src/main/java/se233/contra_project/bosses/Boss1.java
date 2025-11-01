@@ -24,9 +24,10 @@ public class Boss1 extends Boss {
 
     private static final double WIDTH_SCALE = 1.0;
     private static final double HEIGHT_SCALE = 1.8; // stretch vertically to emphasize wall height
-    private static final int COLOR_KEY_TOLERANCE = 8;
+    private static final int COLOR_KEY_TOLERANCE = 12;
     private static final int[][] COLOR_KEYS = {
-            {255, 254, 255} // Light blue outline pixels to remove
+            {255, 254, 255}, // Light blue outline pixels to remove
+            {0, 42, 136}     // Blue border pixels to remove
     };
 
     private static final double BOSS_WIDTH = SPRITE_FRAME_WIDTH * WIDTH_SCALE;
