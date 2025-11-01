@@ -161,26 +161,26 @@ public class Game {
         if (player == null) return;
 
         // Movement input
-        if (inputHandler.isKeyPressed(InputHandler.Key.LEFT)) {
+        if (inputHandler.isKeyPressed(InputHandler.KEY_LEFT)) {
             player.moveLeft();
-        } else if (inputHandler.isKeyPressed(InputHandler.Key.RIGHT)) {
+        } else if (inputHandler.isKeyPressed(InputHandler.KEY_RIGHT)) {
             player.moveRight();
         } else {
             player.stopMoving();
         }
 
         // Jump input
-        if (inputHandler.isKeyPressed(InputHandler.Key.UP)) {
+        if (inputHandler.isKeyPressed(InputHandler.KEY_UP)) {
             player.jump();
         }
 
         // Prone input
-        if (inputHandler.isKeyPressed(InputHandler.Key.DOWN)) {
+        if (inputHandler.isKeyPressed(InputHandler.KEY_DOWN)) {
             player.toggleProne();
         }
 
         // Shooting input
-        if (inputHandler.isKeyPressed(InputHandler.Key.SHOOT)) {
+        if (inputHandler.isKeyPressed(InputHandler.KEY_SPACE)) {
             Bullet bullet = player.shoot();
             if (bullet != null) {
                 playerBullets.add(bullet);
@@ -195,7 +195,7 @@ public class Game {
     private void render() {
         // Trigger repaint on game screen
         if (gameScreen != null) {
-            gameScreen.repaint();
+            // JavaFX doesn't use repaint() - drawing is handled by the animation timer
         }
     }
 

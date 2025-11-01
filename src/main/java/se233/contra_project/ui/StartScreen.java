@@ -1,38 +1,51 @@
 package se233.contra_project.ui;
 
-import javax.swing.*;
-import java.awt.*;
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
+import javafx.application.Platform;
+import javafx.scene.Scene;
+import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.image.Image;
+import javafx.scene.layout.StackPane;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
+import javafx.scene.text.TextAlignment;
+import javafx.animation.AnimationTimer;
+import javafx.scene.input.KeyCode;
+
 import java.io.File;
 
-public class StartScreen extends JPanel {
-    private Timer animationTimer;
+public class StartScreen extends StackPane {
+    private Canvas canvas;
+    private GraphicsContext gc;
+    private AnimationTimer animationTimer;
     private boolean showPressStart = true;
     private Image titleImage;
     private int currentFrame = 0;
     private Image[] animatedFrames;
-    private Timer frameTimer;
+    private AnimationTimer frameTimer;
+
+    private se233.contra_project.Launcher launcher;
 
     public StartScreen() {
+        canvas = new Canvas(800, 600);
+        gc = canvas.getGraphicsContext2D();
+        getChildren().add(canvas);
+
         setupUI();
         loadTitleImage();
         setupAnimations();
         setupKeyListener();
+        setupFocusHandling();
     }
 
     private void setupUI() {
-        setPreferredSize(new Dimension(800, 600));
-        setBackground(Color.BLACK);
-        setFocusable(true);
+        setPrefSize(800, 600);
+        setStyle("-fx-background-color: black;");
     }
 
     private void loadTitleImage() {
         try {
-            // ชื่อไฟล์ตามที่คุณส่งมา
             String filename = "Title Screens.png";
-
-            // ลองหาไฟล์จากหลายๆ ที่
             String[] possiblePaths = {
                     filename,
                     "src/main/resources/" + filename,
@@ -44,35 +57,20 @@ public class StartScreen extends JPanel {
             boolean found = false;
             for (String path : possiblePaths) {
                 File file = new File(path);
-
                 if (file.exists()) {
-                    titleImage = Toolkit.getDefaultToolkit().getImage(file.getAbsolutePath());
+                    titleImage = new Image("file:" + file.getAbsolutePath());
                     found = true;
                     break;
                 }
             }
 
             if (!found) {
-                System.out.println("❌ ไม่พบไฟล์รูป, ใช้ File Chooser...");
-                chooseFileManually();
+                System.out.println("❌ ไม่พบไฟล์รูป, ใช้หน้าจอแบบวาดด้วย code...");
+                createFallbackScreen();
             }
 
         } catch (Exception e) {
             System.out.println("Error loading image: " + e.getMessage());
-            createFallbackScreen();
-        }
-    }
-
-    private void chooseFileManually() {
-        JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setDialogTitle("เลือกไฟล์ Contra Title Screen - NES - Contra - Miscellaneous - Title Screens.png");
-
-        int result = fileChooser.showOpenDialog(this);
-        if (result == JFileChooser.APPROVE_OPTION) {
-            File selectedFile = fileChooser.getSelectedFile();
-            titleImage = Toolkit.getDefaultToolkit().getImage(selectedFile.getAbsolutePath());
-            System.out.println("✅ เลือกไฟล์แล้ว: " + selectedFile.getAbsolutePath());
-        } else {
             createFallbackScreen();
         }
     }
@@ -83,137 +81,127 @@ public class StartScreen extends JPanel {
     }
 
     private void setupAnimations() {
-        // อนิเมชันข้อความกะพริบ
-        animationTimer = new Timer(500, e -> {
-            showPressStart = !showPressStart;
-            repaint();
-        });
+        animationTimer = new AnimationTimer() {
+            private long lastTime = 0;
+
+            @Override
+            public void handle(long now) {
+                if (lastTime == 0) {
+                    lastTime = now;
+                    return;
+                }
+                if ((now - lastTime) / 1_000_000_000.0 >= 0.5) {
+                    showPressStart = !showPressStart;
+                    lastTime = now;
+                    repaint();
+                }
+            }
+        };
         animationTimer.start();
 
-        // อนิเมชันเฟรมรูป (ถ้ามีหลายเฟรม)
-        frameTimer = new Timer(200, e -> {
-            currentFrame = (currentFrame + 1) % 4; // วน 4 เฟรม
-            repaint();
-        });
-        // frameTimer.start(); // เปิดถ้ารูปมีหลายเฟรม
+        // Frame animation if needed
+        // frameTimer = new AnimationTimer() { ... };
     }
 
     private void setupKeyListener() {
-        addKeyListener(new KeyAdapter() {
-            @Override
-            public void keyPressed(KeyEvent e) {
-                switch (e.getKeyCode()) {
-                    case KeyEvent.VK_ENTER:
-                    case KeyEvent.VK_SPACE:
-                        startGame();
-                        break;
-                    case KeyEvent.VK_ESCAPE:
-                        System.exit(0);
-                        break;
-                    case KeyEvent.VK_F1:
-                        chooseFileManually();
-                        repaint();
-                        break;
-                }
+        setOnKeyPressed(event -> {
+            KeyCode code = event.getCode();
+            switch (code) {
+                case ENTER:
+                case SPACE:
+                    startGame();
+                    break;
+                case ESCAPE:
+                    System.exit(0);
+                    break;
+                case F1:
+                    // Could implement file chooser in JavaFX
+                    break;
+            }
+        });
+        setFocusTraversable(true);
+        requestFocus();
+    }
+
+    private void setupFocusHandling() {
+        sceneProperty().addListener((obs, oldScene, newScene) -> {
+            if (newScene != null) {
+                Platform.runLater(this::requestFocus);
             }
         });
     }
 
     private void startGame() {
-        JFrame frame = (JFrame) SwingUtilities.getWindowAncestor(this);
-
-        GameScreen gameScreen = new GameScreen();
-
-        frame.setContentPane(gameScreen);
-        frame.revalidate();
-        frame.repaint();
-
-        SwingUtilities.invokeLater(gameScreen::requestFocusInWindow);
-    }
-
-    @Override
-    protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
-        Graphics2D g2d = (Graphics2D) g;
-
-        // เปิดการทำให้เรียบ
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-        // โหลดฟอนต์จาก FontManager
-        Font bigFont = FontManager.getContraFont(44f);
-        Font mediumFont = FontManager.getContraFont(36f);
-        Font smallFont = FontManager.getContraFont(24f);
-
-        drawBackground(g2d);
-
-        if (titleImage != null) {
-            drawTitleImage(g2d);
+        // Signal to Launcher to switch to GameScreen
+        if (launcher != null) {
+            launcher.switchToGameScreen();
+            System.out.println("Switching to GameScreen...");
         } else {
-            drawFallbackTitleScreen(g2d);
+            System.out.println("Launcher is null!");
         }
-
-        drawPressStart(g2d);
     }
 
-    private void drawBackground(Graphics2D g2d) {
-        // พื้นหลังสีดำแบบ Contra
-        g2d.setColor(Color.BLACK);
-        g2d.fillRect(0, 0, getWidth(), getHeight());
+    public void setLauncher(se233.contra_project.Launcher launcher) {
+        this.launcher = launcher;
+    }
 
-        // เพิ่มดาวแบบ Contra
-        g2d.setColor(Color.WHITE);
+    private void repaint() {
+        draw();
+    }
+
+    private void draw() {
+        gc.setFill(Color.BLACK);
+        gc.fillRect(0, 0, 800, 600);
+
+        // Draw stars
+        gc.setFill(Color.WHITE);
         for (int i = 0; i < 50; i++) {
-            int x = (int)(Math.random() * getWidth());
-            int y = (int)(Math.random() * getHeight());
+            int x = (int)(Math.random() * 800);
+            int y = (int)(Math.random() * 600);
             int size = (int)(Math.random() * 2) + 1;
-            g2d.fillOval(x, y, size, size);
+            gc.fillOval(x, y, size, size);
         }
-    }
 
-    private void drawTitleImage(Graphics2D g2d) {
         if (titleImage != null) {
-            // วาดรูปเต็มหน้าจอ หรือ scale ให้พอดี
-            int imgWidth = titleImage.getWidth(this);
-            int imgHeight = titleImage.getHeight(this);
+            drawTitleImage();
+        } else {
+            drawFallbackTitleScreen();
+        }
 
-            if (imgWidth > 0 && imgHeight > 0) {
-                // Scale รูปให้พอดีกับหน้าจอ
-                double scale = Math.min(800.0 / imgWidth, 500.0 / imgHeight);
-                int scaledWidth = (int)(imgWidth * scale);
-                int scaledHeight = (int)(imgHeight * scale);
+        drawPressStart();
+    }
 
-                int x = (getWidth() - scaledWidth) / 2;
-                int y = 20;
-
-                g2d.drawImage(titleImage, x, y, scaledWidth, scaledHeight, this);
-            }
+    private void drawTitleImage() {
+        if (titleImage != null) {
+            double scale = Math.min(800.0 / titleImage.getWidth(), 500.0 / titleImage.getHeight());
+            double scaledWidth = titleImage.getWidth() * scale;
+            double scaledHeight = titleImage.getHeight() * scale;
+            double x = (800 - scaledWidth) / 2;
+            double y = 20;
+            gc.drawImage(titleImage, x, y, scaledWidth, scaledHeight);
         }
     }
 
-    //ถ้าหาไฟล์รูปไม่เจอ จะแทนด้วยข้อความพวกนี้
-    private void drawFallbackTitleScreen(Graphics2D g2d) {
-        // CONTRA Logo ใหญ่
-        g2d.setColor(Color.RED);
-        g2d.setFont(new Font("Arial", Font.BOLD, 72));
-        g2d.drawString("CONTRA", 250, 150);
+    private void drawFallbackTitleScreen() {
+        gc.setFill(Color.RED);
+        gc.setFont(Font.font("Arial", 72));
+        gc.setTextAlign(TextAlignment.CENTER);
+        gc.fillText("CONTRA", 400, 150);
 
-        // กรอบรอบ CONTRA
-        g2d.setColor(Color.WHITE);
-        g2d.drawRect(245, 85, 310, 80);
+        gc.setFill(Color.WHITE);
+        gc.strokeRect(245, 85, 310, 80);
 
-        // PLAY SELECT
-        g2d.setColor(Color.YELLOW);
-        g2d.setFont(new Font("Arial", Font.BOLD, 32));
-        g2d.drawString("PLAY SELECT", 280, 230);
+        gc.setFill(Color.YELLOW);
+        gc.setFont(Font.font("Arial", 32));
+        gc.fillText("PLAY SELECT", 400, 230);
     }
 
-
-    private void drawPressStart(Graphics2D g2d) {
+    private void drawPressStart() {
         if (showPressStart) {
-            g2d.setColor(Color.RED);
-            g2d.setFont(new Font("Arial", Font.BOLD, 20));
-            g2d.drawString("PRESS ENTER TO START", 280, 520);
+            gc.setFill(Color.RED);
+            gc.setFont(Font.font("Arial", 20));
+            gc.setTextAlign(TextAlignment.CENTER);
+            gc.fillText("PRESS ENTER TO START", 400, 520);
         }
     }
-
 }

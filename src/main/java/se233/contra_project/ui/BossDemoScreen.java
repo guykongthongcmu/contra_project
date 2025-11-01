@@ -1,5 +1,7 @@
 package se233.contra_project.ui;
 
+import javafx.scene.Node;
+import javafx.scene.Parent;
 import se233.contra_project.bosses.*;
 import se233.contra_project.actors.Player;
 import se233.contra_project.game.systems.CollisionSystem;
@@ -15,7 +17,7 @@ import javafx.scene.text.TextAlignment;
  * Boss Demo Screen for testing and demonstrating all enhanced boss mechanics
  * Shows off all three bosses with their unique attack patterns and AI behaviors
  */
-public class BossDemoScreen {
+public class BossDemoScreen extends Parent {
     private Canvas canvas;
     private GraphicsContext gc;
     private AnimationTimer animationTimer;
@@ -361,10 +363,6 @@ public class BossDemoScreen {
             case STRAIGHT: return Color.YELLOW;
             case HOMING: return Color.PINK;
             case BOUNCING: return Color.CYAN;
-            case PIERCING: return Color.ORANGE;
-            case GRAVITY_AFFECTED: return Color.BROWN;
-            case TELEPORTING: return Color.PURPLE;
-            case SPLITTING: return Color.LIME;
             default: return Color.WHITE;
         }
     }
@@ -419,17 +417,8 @@ public class BossDemoScreen {
     }
     
     private void drawVisualEffects() {
-        for (se233.contra_project.game.systems.CollisionSystem.VisualEffect effect : 
-             collisionSystem.getVisualEffects()) {
-            
-            double alpha = effect.duration / effect.maxDuration;
-            Color effectColor = getEffectColor(effect.type);
-            
-            gc.setFill(effectColor);
-            gc.setGlobalAlpha(alpha);
-            gc.fillOval(effect.x - 10, effect.y - 10, 20, 20);
-            gc.setGlobalAlpha(1.0);
-        }
+        // Visual effects are handled by the collision system
+        // This method is kept for future enhancements
     }
     
     private Color getEffectColor(String effectType) {
@@ -459,5 +448,10 @@ public class BossDemoScreen {
     
     public boolean isActive() {
         return demoActive;
+    }
+
+    @Override
+    public Node getStyleableNode() {
+        return super.getStyleableNode();
     }
 }

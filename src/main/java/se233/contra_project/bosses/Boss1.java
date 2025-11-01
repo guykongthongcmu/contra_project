@@ -1,28 +1,126 @@
 package se233.contra_project.bosses;
 
+import javafx.scene.image.Image;
+import javafx.scene.image.PixelReader;
+import javafx.scene.image.WritableImage;
+import javafx.scene.image.PixelWriter;
+import java.io.InputStream;
 import se233.contra_project.actors.Projectile;
+import se233.contra_project.core.components.Sprite;
 
 /**
  * Boss1 - Defense Wall
- * A stationary boss that shoots projectiles at the player
+ * A stationary boss that creates defensive barriers and shoots projectiles
+ * Based on the Contra boss that builds walls for protection
  */
 public class Boss1 extends Boss {
-    private static final double BOSS_WIDTH = 64.0;
-    private static final double BOSS_HEIGHT = 96.0;
+    private static final String SPRITE_SHEET_PATH = "/se233/contra_project/sprites/Bosses1DefenseWall.png";
+
+    // Sprite sheet crop (source data derived from sheet analysis)
+    private static final int SPRITE_FRAME_X = 3;
+    private static final int SPRITE_FRAME_Y = 63;
+    private static final int SPRITE_FRAME_WIDTH = 156;
+    private static final int SPRITE_FRAME_HEIGHT = 94;
+
+    private static final double WIDTH_SCALE = 1.0;
+    private static final double HEIGHT_SCALE = 1.8; // stretch vertically to emphasize wall height
+    private static final int COLOR_KEY_TOLERANCE = 8;
+    private static final int[][] COLOR_KEYS = {
+            {255, 254, 255} // Light blue outline pixels to remove
+    };
+
+    private static final double BOSS_WIDTH = SPRITE_FRAME_WIDTH * WIDTH_SCALE;
+    private static final double BOSS_HEIGHT = SPRITE_FRAME_HEIGHT * HEIGHT_SCALE;
     private static final int BOSS_HEALTH = 10;
-    private static final int BOSS_SCORE = 2000;
+    private static final int BOSS_SCORE = 2;
 
     private static final double ATTACK_COOLDOWN = 2.0; // seconds between attacks
+    private static final double WALL_SPAWN_COOLDOWN = 5.0; // seconds between wall spawns
     private double attackTimer;
+    private double wallSpawnTimer;
+    private boolean hasWall;
 
     public Boss1(double x, double y) {
         super(x, y, BOSS_WIDTH, BOSS_HEIGHT, BOSS_HEALTH, BOSS_SCORE);
         this.attackTimer = 0;
+        this.wallSpawnTimer = 0;
+        this.hasWall = false;
+
+        loadSpriteFrame();
+    }
+
+    private void loadSpriteFrame() {
+        try (InputStream stream = getClass().getResourceAsStream(SPRITE_SHEET_PATH)) {
+            if (stream == null) {
+                System.err.println("Boss1 sprite sheet not found at " + SPRITE_SHEET_PATH);
+                return;
+            }
+            Image sheet = new Image(stream);
+            PixelReader reader = sheet.getPixelReader();
+            if (reader == null) {
+                System.err.println("Boss1 sprite sheet pixel reader was null.");
+                return;
+            }
+            WritableImage frame = new WritableImage(reader,
+                    SPRITE_FRAME_X,
+                    SPRITE_FRAME_Y,
+                    SPRITE_FRAME_WIDTH,
+                    SPRITE_FRAME_HEIGHT);
+
+            // Apply color key transparency so dark borders are invisible
+            PixelReader frameReader = frame.getPixelReader();
+            PixelWriter frameWriter = frame.getPixelWriter();
+            applyColorKeyTransparency(frameReader, frameWriter);
+
+            Sprite bossSprite = new Sprite(frame,
+                    SPRITE_FRAME_WIDTH * WIDTH_SCALE,
+                    SPRITE_FRAME_HEIGHT * HEIGHT_SCALE);
+            setSprite(bossSprite);
+            setWidth(BOSS_WIDTH);
+            setHeight(BOSS_HEIGHT);
+        } catch (Exception e) {
+            System.err.println("Failed to load Boss1 sprite: " + e.getMessage());
+        }
+    }
+
+    private void applyColorKeyTransparency(PixelReader reader, PixelWriter writer) {
+        for (int y = 0; y < SPRITE_FRAME_HEIGHT; y++) {
+            for (int x = 0; x < SPRITE_FRAME_WIDTH; x++) {
+                int argb = reader.getArgb(x, y);
+                int red = (argb >> 16) & 0xFF;
+                int green = (argb >> 8) & 0xFF;
+                int blue = argb & 0xFF;
+
+                if (isColorKey(red, green, blue)) {
+                    argb &= 0x00FFFFFF; // clear alpha
+                }
+                writer.setArgb(x, y, argb);
+            }
+        }
+    }
+
+    private boolean isColorKey(int red, int green, int blue) {
+        for (int[] key : COLOR_KEYS) {
+            if (Math.abs(red - key[0]) <= COLOR_KEY_TOLERANCE &&
+                Math.abs(green - key[1]) <= COLOR_KEY_TOLERANCE &&
+                Math.abs(blue - key[2]) <= COLOR_KEY_TOLERANCE) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
     protected void updateIdle(double deltaTime) {
         attackTimer += deltaTime;
+        wallSpawnTimer += deltaTime;
+
+        // Spawn defensive wall periodically
+        if (wallSpawnTimer >= WALL_SPAWN_COOLDOWN && !hasWall) {
+            spawnDefensiveWall();
+            wallSpawnTimer = 0;
+            hasWall = true;
+        }
 
         // Attack periodically
         if (attackTimer >= ATTACK_COOLDOWN) {
@@ -49,19 +147,61 @@ public class Boss1 extends Boss {
 
     @Override
     protected void performAttack() {
-        // Fire projectiles towards the left side (towards player)
+        // Fire multiple projectiles in a spread pattern
         double centerX = this.position.getX() + this.width / 2;
         double centerY = this.position.getY() + this.height / 2;
 
-        // Fire 3 projectiles in a spread pattern towards the left
+        // Fire 3 projectiles in a fan pattern
         for (int i = -1; i <= 1; i++) {
-            double baseAngle = Math.PI; // 180 degrees (left direction)
-            double angle = baseAngle + Math.toRadians(i * 15); // -15, 0, 15 degrees from left
+            double angle = Math.toRadians(i * 15); // -15, 0, 15 degrees
             double vx = Math.cos(angle) * 200; // 200 pixels/second
             double vy = Math.sin(angle) * 200;
 
             Projectile projectile = new Projectile(centerX, centerY, vx, vy, Projectile.ProjectileType.STRAIGHT);
             addProjectile(projectile);
         }
+    }
+
+    /**
+     * Spawn a defensive wall in front of the boss
+     * This wall would block player bullets but allow boss projectiles through
+     */
+    private void spawnDefensiveWall() {
+        // In a full implementation, this would create wall entities
+        // For now, just set a flag and handle wall logic in collision system
+        System.out.println("Boss1 spawned defensive wall");
+    }
+
+    /**
+     * Check if boss currently has an active defensive wall
+     * @return true if wall is active
+     */
+    public boolean hasDefensiveWall() {
+        return hasWall;
+    }
+
+    /**
+     * Remove the defensive wall (called when wall is destroyed or times out)
+     */
+    public void removeDefensiveWall() {
+        hasWall = false;
+        wallSpawnTimer = 0; // Reset timer to spawn new wall sooner
+    }
+
+    @Override
+    public void takeDamage(int damage) {
+        // If boss has a wall, it absorbs some damage
+        if (hasWall) {
+            // Wall takes 50% of the damage
+            int wallDamage = damage / 2;
+            damage -= wallDamage;
+
+            // Chance to destroy wall when hit
+            if (Math.random() < 0.3) { // 30% chance
+                removeDefensiveWall();
+            }
+        }
+
+        super.takeDamage(damage);
     }
 }

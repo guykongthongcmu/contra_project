@@ -126,7 +126,7 @@ public class RenderSystem {
      * Render a specific frame from a sprite sheet
      */
     public void renderSpriteFromImage(String imagePath, double x, double y, double width, double height,
-                                    int frameX, int frameY, int frameWidth, int frameHeight) {
+                                      int frameX, int frameY, int frameWidth, int frameHeight) {
         renderSpriteFromImage(imagePath, x, y, width, height, frameX, frameY, frameWidth, frameHeight, null);
     }
 
@@ -134,7 +134,7 @@ public class RenderSystem {
      * Render a sprite with optional transparent color
      */
     public void renderSpriteFromImage(String imagePath, double x, double y, double width, double height,
-                                    int frameX, int frameY, int frameWidth, int frameHeight, Color transparentColor) {
+                                      int frameX, int frameY, int frameWidth, int frameHeight, Color transparentColor) {
         if (graphics == null) return;
 
         try {
@@ -199,8 +199,8 @@ public class RenderSystem {
      */
     private boolean colorsMatch(Color c1, Color c2, int tolerance) {
         return Math.abs(c1.getRed() - c2.getRed()) <= tolerance &&
-               Math.abs(c1.getGreen() - c2.getGreen()) <= tolerance &&
-               Math.abs(c1.getBlue() - c2.getBlue()) <= tolerance;
+                Math.abs(c1.getGreen() - c2.getGreen()) <= tolerance &&
+                Math.abs(c1.getBlue() - c2.getBlue()) <= tolerance;
     }
 
     /**

@@ -13,7 +13,9 @@ public class Sprite {
     private double height;
 
     public Sprite(String imagePath, double width, double height) {
-        this.image = new Image(imagePath);
+        // Load image from classpath resources
+        String resourcePath = "/" + imagePath;
+        this.image = new Image(getClass().getResourceAsStream(resourcePath));
         this.imageView = new ImageView(image);
         this.width = width;
         this.height = height;
