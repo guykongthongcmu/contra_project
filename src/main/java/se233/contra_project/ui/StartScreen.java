@@ -190,14 +190,8 @@ public class StartScreen extends JPanel {
         }
     }
 
+    //ถ้าหาไฟล์รูปไม่เจอ จะแทนด้วยข้อความพวกนี้
     private void drawFallbackTitleScreen(Graphics2D g2d) {
-        // วาดหน้าจอแบบ Contra ด้วย code
-
-        // KONAMI Logo บน
-        g2d.setColor(Color.WHITE);
-        g2d.setFont(new Font("Arial", Font.BOLD, 28));
-        g2d.drawString("KONAMI", 330, 60);
-
         // CONTRA Logo ใหญ่
         g2d.setColor(Color.RED);
         g2d.setFont(new Font("Arial", Font.BOLD, 72));
