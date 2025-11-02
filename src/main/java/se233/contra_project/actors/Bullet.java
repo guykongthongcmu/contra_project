@@ -8,10 +8,10 @@ import se233.contra_project.core.components.Sprite;
  * Moves in a straight line and deals damage to enemies
  */
 public class Bullet extends Entity {
-    private static final double BULLET_SPEED = 400.0; // pixels per second
-    private static final double BULLET_WIDTH = 8.0;
-    private static final double BULLET_HEIGHT = 4.0;
-    private static final int BULLET_DAMAGE = 1;
+    private static final double BULLET_SPEED = 525.0; // pixels per second
+    private static final double BULLET_WIDTH = 10.0;
+    private static final double BULLET_HEIGHT = 6.0;
+    private static final int BULLET_DAMAGE = 5;
 
     private Sprite sprite;
     private boolean fromPlayer; // true if fired by player, false if enemy projectile
@@ -77,5 +77,10 @@ public class Bullet extends Entity {
      */
     public void setSprite(Sprite sprite) {
         this.sprite = sprite;
+        if (sprite != null) {
+            this.width = sprite.getWidth();
+            this.height = sprite.getHeight();
+            sprite.setPosition(this.position.getX(), this.position.getY());
+        }
     }
 }

@@ -26,7 +26,7 @@ public class Player extends Entity {
     private boolean prone;
     private int lives;
     private double shootCooldown;
-    private static final double SHOOT_COOLDOWN_TIME = 0.2; // seconds between shots
+    private static final double SHOOT_COOLDOWN_TIME = 0.5; // seconds between shots
     private double groundLevel = 400.0;
 
     public Player(double x, double y) {
@@ -143,8 +143,9 @@ public class Player extends Entity {
      */
     public Bullet shoot() {
         if (shootCooldown <= 0) {
-            double bulletX = facingRight ? this.position.getX() + this.width : this.position.getX();
-            double bulletY = this.position.getY() + this.height / 2;
+            double muzzleOffsetX = facingRight ? this.width - 6 : -6;
+            double bulletX = this.position.getX() + muzzleOffsetX;
+            double bulletY = this.position.getY() + this.height * 0.45;
             Bullet bullet = new Bullet(bulletX, bulletY, facingRight, true);
             shootCooldown = SHOOT_COOLDOWN_TIME;
             return bullet;

@@ -45,19 +45,12 @@ public class Stage3Screen extends BaseStageScreen {
 
     @Override
     protected String[] getAdditionalControlHints() {
-        return new String[] { "SPACE - Damage Boss3 (5 HP)" };
+        return new String[] { "SPACE - Shoot" };
     }
 
     @Override
     protected void onBossCreated(Boss boss) {
         positionBossCenter(boss);
-    }
-
-    @Override
-    protected void onCustomKeyPressed(KeyCode code, boolean firstPress) {
-        if (code == KeyCode.SPACE && firstPress) {
-            damageBoss(5);
-        }
     }
 
     @Override

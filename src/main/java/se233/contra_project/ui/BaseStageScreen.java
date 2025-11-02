@@ -9,13 +9,17 @@ import javafx.scene.image.WritableImage;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
+import se233.contra_project.actors.Bullet;
 import se233.contra_project.actors.Player;
 import se233.contra_project.bosses.Boss;
 import se233.contra_project.core.components.Sprite;
 import se233.contra_project.core.components.SpriteAnimation;
 
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -36,6 +40,8 @@ public abstract class BaseStageScreen extends StackPane {
     private boolean showInfo = true;
     private Player player;
     private final Set<KeyCode> activeKeys = EnumSet.noneOf(KeyCode.class);
+    private final List<Bullet> playerBullets = new ArrayList<>();
+    private Image bulletImage;
 
     private static final int PLAYER_FRAME_PADDING = 2;
     private static final FrameRect[] PLAYER_IDLE_FRAMES = {
@@ -72,6 +78,7 @@ public abstract class BaseStageScreen extends StackPane {
         getChildren().add(canvas);
 
         loadBackground();
+        loadBulletSprite();
         initializeBoss();
         initializePlayer();
         initializeHealthBar();
@@ -101,6 +108,20 @@ public abstract class BaseStageScreen extends StackPane {
         }
     }
 
+    private void loadBulletSprite() {
+        try (InputStream stream = getClass().getResourceAsStream(getBulletSpritePath())) {
+            if (stream != null) {
+                bulletImage = new Image(stream);
+            } else {
+                System.err.println("Bullet sprite not found at " + getBulletSpritePath());
+                bulletImage = null;
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to load bullet sprite: " + e.getMessage());
+            bulletImage = null;
+        }
+    }
+
     private void initializeBoss() {
         boss = createBoss();
         if (boss == null) {
@@ -115,6 +136,7 @@ public abstract class BaseStageScreen extends StackPane {
             throw new IllegalStateException("Stage must provide a player instance.");
         }
 
+        playerBullets.clear();
         configurePlayerSprite(player);
         positionPlayer(player);
         onPlayerCreated(player);
@@ -170,6 +192,27 @@ public abstract class BaseStageScreen extends StackPane {
         }
     }
 
+    private void configureBulletSprite(Bullet bullet) {
+        if (bulletImage == null) {
+            return;
+        }
+
+        double scale = getBulletSpriteScale();
+        Image frame = bulletImage;
+        Sprite sprite = new Sprite(frame, frame.getWidth() * scale, frame.getHeight() * scale);
+        bullet.setSprite(sprite);
+
+        double adjustedX = bullet.getPosition().getX();
+        double adjustedY = bullet.getPosition().getY() - sprite.getHeight() / 2.0;
+
+        if (bullet.getVelocity().getX() < 0) {
+            adjustedX -= sprite.getWidth();
+        }
+
+        bullet.setPosition(adjustedX, adjustedY);
+        sprite.setPosition(adjustedX, adjustedY);
+    }
+
     private void positionPlayer(Player player) {
         double startX = getPlayerStartX();
         double floorY = getFloorY();
@@ -202,6 +245,10 @@ public abstract class BaseStageScreen extends StackPane {
 
         boolean crouch = (isKeyDown(KeyCode.DOWN) || isKeyDown(KeyCode.S)) && player.isOnGround();
         player.setProne(crouch);
+
+        if (isKeyDown(KeyCode.SPACE) || isKeyDown(KeyCode.K)) {
+            attemptPlayerShoot();
+        }
     }
 
     private void clampPlayerWithinBounds() {
@@ -219,6 +266,41 @@ public abstract class BaseStageScreen extends StackPane {
             player.setPosition(clampedX, clampedY);
             if (player.getSprite() != null) {
                 player.getSprite().setPosition(clampedX, clampedY);
+            }
+        }
+    }
+
+    private void attemptPlayerShoot() {
+        if (player == null) {
+            return;
+        }
+
+        Bullet bullet = player.shoot();
+        if (bullet != null) {
+            configureBulletSprite(bullet);
+            playerBullets.add(bullet);
+        }
+    }
+
+    private void updateBullets(double deltaTime) {
+        if (playerBullets.isEmpty()) {
+            return;
+        }
+
+        Iterator<Bullet> iterator = playerBullets.iterator();
+        while (iterator.hasNext()) {
+            Bullet bullet = iterator.next();
+            bullet.update(deltaTime);
+
+            if (!bullet.isAlive()) {
+                iterator.remove();
+                continue;
+            }
+
+            if (boss != null && boss.isAlive() && bullet.collidesWith(boss)) {
+                damageBoss(bullet.getDamage());
+                bullet.setAlive(false);
+                iterator.remove();
             }
         }
     }
@@ -281,6 +363,7 @@ public abstract class BaseStageScreen extends StackPane {
         if (player != null) {
             positionPlayer(player);
         }
+        playerBullets.clear();
     }
 
     private void startAnimationTimer() {
@@ -303,6 +386,8 @@ public abstract class BaseStageScreen extends StackPane {
                     clampPlayerWithinBounds();
                 }
 
+                updateBullets(deltaTime);
+
                 if (boss != null) {
                     boss.update(deltaTime);
                 }
@@ -319,6 +404,7 @@ public abstract class BaseStageScreen extends StackPane {
     private void draw() {
         drawBackgroundLayer();
         drawPlayer();
+        drawPlayerBullets();
         drawBoss();
         if (showHealthBar && healthBar != null) {
             healthBar.draw();
@@ -379,6 +465,32 @@ public abstract class BaseStageScreen extends StackPane {
             // Bounding box intentionally omitted; use debug overlays if needed.
         } catch (Exception e) {
             System.err.println("Error drawing player: " + e.getMessage());
+        }
+    }
+
+    private void drawPlayerBullets() {
+        if (playerBullets.isEmpty()) {
+            return;
+        }
+
+        for (Bullet bullet : playerBullets) {
+            Sprite sprite = bullet.getSprite();
+            if (sprite != null) {
+                Image image = sprite.getImage();
+                double drawX = bullet.getPosition().getX();
+                double drawY = bullet.getPosition().getY();
+                double drawWidth = sprite.getWidth();
+                double drawHeight = sprite.getHeight();
+
+                if (bullet.getVelocity().getX() >= 0) {
+                    gc.drawImage(image, drawX, drawY, drawWidth, drawHeight);
+                } else {
+                    gc.drawImage(image, 0, 0, image.getWidth(), image.getHeight(), drawX + drawWidth, drawY, -drawWidth, drawHeight);
+                }
+            } else {
+                gc.setFill(Color.ORANGE);
+                gc.fillOval(bullet.getPosition().getX(), bullet.getPosition().getY(), bullet.getWidth(), bullet.getHeight());
+            }
         }
     }
 
@@ -591,6 +703,14 @@ public abstract class BaseStageScreen extends StackPane {
 
     protected double getPlayerSpriteScale() {
         return 1.15;
+    }
+
+    protected String getBulletSpritePath() {
+        return "/se233/contra_project/sprites/PLayerBullet.png";
+    }
+
+    protected double getBulletSpriteScale() {
+        return 3.0;
     }
 
     private Image[] extractFrames(Image sheet, FrameRect[] rects) {
