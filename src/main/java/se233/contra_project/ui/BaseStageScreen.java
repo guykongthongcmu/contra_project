@@ -16,6 +16,7 @@ import se233.contra_project.actors.Projectile;
 import se233.contra_project.bosses.Boss;
 import se233.contra_project.core.components.Sprite;
 import se233.contra_project.core.components.SpriteAnimation;
+import se233.contra_project.game.GameSession;
 
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -58,8 +59,12 @@ public abstract class BaseStageScreen extends StackPane {
     private int lastHudLives = -1;
     private int lastHudScore = -1;
 
+    private static final GameSession SHARED_SESSION = new GameSession();
+
     private boolean bossDefeatedNotified = false;
     private boolean exitTriggered = false;
+    private boolean showControlsOverlay = false;
+    private GameSession session;
 
     private static final int PLAYER_FRAME_PADDING = 2;
     private static final FrameRect[] PLAYER_IDLE_FRAMES = {
@@ -217,6 +222,18 @@ public abstract class BaseStageScreen extends StackPane {
         healthBar = new BossHealthBar(canvas, boss);
     }
 
+    public void bindSession(GameSession session) {
+        this.session = (session != null) ? session : SHARED_SESSION;
+        syncSessionScore();
+    }
+
+    public void syncSessionScore() {
+        GameSession activeSession = getActiveSession();
+        playerScore = activeSession.getScore();
+        lastHudScore = -1;
+        refreshHud();
+    }
+
     private void configurePlayerSprite(Player player) {
         try (InputStream stream = getClass().getResourceAsStream(getPlayerSpriteSheetPath())) {
             if (stream == null) {
@@ -336,7 +353,8 @@ public abstract class BaseStageScreen extends StackPane {
             return;
         }
         final int lives = player != null ? Math.max(0, player.getLives()) : 0;
-        final int scoreSnapshot = playerScore;
+        final int scoreSnapshot = getActiveSession().getScore();
+        playerScore = scoreSnapshot;
         if (lives == lastHudLives && scoreSnapshot == lastHudScore) {
             return;
         }
@@ -350,10 +368,12 @@ public abstract class BaseStageScreen extends StackPane {
             LOGGER.fine(() -> String.format("Ignoring non-positive score increment: %d", points));
             return;
         }
-        playerScore += points;
+        GameSession activeSession = getActiveSession();
+        int updatedScore = activeSession.addScore(points);
+        playerScore = updatedScore;
         LOGGER.info(() -> String.format(
                 "Score increased by %d | total=%d",
-                points, playerScore
+                points, updatedScore
         ));
         refreshHud();
     }
@@ -638,6 +658,9 @@ public abstract class BaseStageScreen extends StackPane {
                     case I:
                         showInfo = !showInfo;
                         break;
+                    case F1:
+                        showControlsOverlay = !showControlsOverlay;
+                        break;
                     case R:
                         resetBoss();
                         break;
@@ -683,7 +706,7 @@ public abstract class BaseStageScreen extends StackPane {
         bossProjectiles.clear();
         bossDefeatedNotified = false;
         exitTriggered = false;
-        refreshHud();
+        syncSessionScore();
     }
 
     private void startAnimationTimer() {
@@ -739,7 +762,9 @@ public abstract class BaseStageScreen extends StackPane {
         if (showInfo) {
             drawInfoPanel();
         }
-        drawControlsHelp();
+        if (showControlsOverlay) {
+            drawControlsHelp();
+        }
     }
 
     private void drawBackgroundLayer() {
@@ -911,6 +936,10 @@ public abstract class BaseStageScreen extends StackPane {
                 gc.fillText("Sprite Path: " + spriteInfo, 20, y);
             }
         }
+    }
+
+    private GameSession getActiveSession() {
+        return session != null ? session : SHARED_SESSION;
     }
 
     private void drawControlsHelp() {
