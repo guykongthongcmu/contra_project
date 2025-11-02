@@ -367,7 +367,6 @@ public abstract class BaseStageScreen extends StackPane {
             }
         }
 
-        bossList.clear();
 
         Iterator<Projectile> iterator = bossProjectiles.iterator();
         while (iterator.hasNext()) {
@@ -824,7 +823,7 @@ public abstract class BaseStageScreen extends StackPane {
     }
 
     protected double getBossProjectileSpriteScale() {
-        return 1.8;
+        return 2.5;
     }
 
     private Image[] extractFrames(Image sheet, FrameRect[] rects) {

@@ -113,16 +113,16 @@ public class Boss1 extends Boss {
     @Override
     protected void performAttack() {
         // Fire multiple projectiles in a spread pattern
-        double centerX = this.position.getX() + this.width / 2;
+        double leftEdge = this.position.getX();
         double centerY = this.position.getY() + this.height / 2;
 
         // Fire 3 projectiles in a fan pattern
         for (int i = -1; i <= 1; i++) {
-            double angle = Math.toRadians(i * 15); // -15, 0, 15 degrees
-            double vx = Math.cos(angle) * 200; // 200 pixels/second
-            double vy = Math.sin(angle) * 200;
+            double angle = Math.toRadians(i * 25); // wider spread for dodging gaps
+            double vx = -Math.cos(angle) * 240;
+            double vy = Math.sin(angle) * 190;
 
-            double startX = centerX - 4;
+            double startX = leftEdge - 12; // emit from just outside the wall
             double startY = centerY - 4;
             Projectile projectile = new Projectile(startX, startY, vx, vy, Projectile.ProjectileType.STRAIGHT);
             addProjectile(projectile);
