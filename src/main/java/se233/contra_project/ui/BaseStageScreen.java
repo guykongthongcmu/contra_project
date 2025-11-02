@@ -11,6 +11,7 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import se233.contra_project.actors.Bullet;
 import se233.contra_project.actors.Player;
+import se233.contra_project.actors.Projectile;
 import se233.contra_project.bosses.Boss;
 import se233.contra_project.core.components.Sprite;
 import se233.contra_project.core.components.SpriteAnimation;
@@ -41,7 +42,9 @@ public abstract class BaseStageScreen extends StackPane {
     private Player player;
     private final Set<KeyCode> activeKeys = EnumSet.noneOf(KeyCode.class);
     private final List<Bullet> playerBullets = new ArrayList<>();
+    private final List<Projectile> bossProjectiles = new ArrayList<>();
     private Image bulletImage;
+    private Image bossProjectileImage;
 
     private static final int PLAYER_FRAME_PADDING = 2;
     private static final FrameRect[] PLAYER_IDLE_FRAMES = {
@@ -79,6 +82,7 @@ public abstract class BaseStageScreen extends StackPane {
 
         loadBackground();
         loadBulletSprite();
+        loadBossProjectileSprite();
         initializeBoss();
         initializePlayer();
         initializeHealthBar();
@@ -122,11 +126,26 @@ public abstract class BaseStageScreen extends StackPane {
         }
     }
 
+    private void loadBossProjectileSprite() {
+        try (InputStream stream = getClass().getResourceAsStream(getBossProjectileSpritePath())) {
+            if (stream != null) {
+                bossProjectileImage = new Image(stream);
+            } else {
+                System.err.println("Boss projectile sprite not found at " + getBossProjectileSpritePath());
+                bossProjectileImage = null;
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to load boss projectile sprite: " + e.getMessage());
+            bossProjectileImage = null;
+        }
+    }
+
     private void initializeBoss() {
         boss = createBoss();
         if (boss == null) {
             throw new IllegalStateException("Stage must provide a boss instance.");
         }
+        bossProjectiles.clear();
         onBossCreated(boss);
     }
 
@@ -211,6 +230,20 @@ public abstract class BaseStageScreen extends StackPane {
 
         bullet.setPosition(adjustedX, adjustedY);
         sprite.setPosition(adjustedX, adjustedY);
+    }
+
+    private void configureBossProjectileSprite(Projectile projectile) {
+        if (bossProjectileImage == null) {
+            return;
+        }
+
+        double scale = getBossProjectileSpriteScale();
+        Image frame = bossProjectileImage;
+        Sprite sprite = new Sprite(frame, frame.getWidth() * scale, frame.getHeight() * scale);
+        projectile.setSprite(sprite);
+        projectile.setWidth(sprite.getWidth());
+        projectile.setHeight(sprite.getHeight());
+        sprite.setPosition(projectile.getPosition().getX(), projectile.getPosition().getY());
     }
 
     private void positionPlayer(Player player) {
@@ -305,6 +338,52 @@ public abstract class BaseStageScreen extends StackPane {
         }
     }
 
+    private void handlePlayerHit(Projectile projectile) {
+        projectile.setAlive(false);
+        if (player == null) {
+            return;
+        }
+
+        player.loseLife();
+        System.out.println("Player hit! Lives remaining: " + player.getLives());
+
+        if (player.isAlive()) {
+            positionPlayer(player);
+        } else {
+            System.out.println("Player defeated!");
+        }
+    }
+
+    private void syncBossProjectiles() {
+        if (boss == null) {
+            return;
+        }
+
+        List<Projectile> bossList = boss.getProjectiles();
+        for (Projectile projectile : bossList) {
+            if (!bossProjectiles.contains(projectile)) {
+                configureBossProjectileSprite(projectile);
+                bossProjectiles.add(projectile);
+            }
+        }
+
+        bossList.clear();
+
+        Iterator<Projectile> iterator = bossProjectiles.iterator();
+        while (iterator.hasNext()) {
+            Projectile projectile = iterator.next();
+            if (!projectile.isAlive()) {
+                iterator.remove();
+                continue;
+            }
+
+            if (player != null && player.isAlive() && projectile.collidesWith(player)) {
+                handlePlayerHit(projectile);
+                iterator.remove();
+            }
+        }
+    }
+
     private boolean isKeyDown(KeyCode code) {
         return activeKeys.contains(code);
     }
@@ -364,6 +443,7 @@ public abstract class BaseStageScreen extends StackPane {
             positionPlayer(player);
         }
         playerBullets.clear();
+        bossProjectiles.clear();
     }
 
     private void startAnimationTimer() {
@@ -390,6 +470,7 @@ public abstract class BaseStageScreen extends StackPane {
 
                 if (boss != null) {
                     boss.update(deltaTime);
+                    syncBossProjectiles();
                 }
                 if (healthBar != null) {
                     healthBar.update(deltaTime);
@@ -405,6 +486,7 @@ public abstract class BaseStageScreen extends StackPane {
         drawBackgroundLayer();
         drawPlayer();
         drawPlayerBullets();
+        drawBossProjectiles();
         drawBoss();
         if (showHealthBar && healthBar != null) {
             healthBar.draw();
@@ -490,6 +572,30 @@ public abstract class BaseStageScreen extends StackPane {
             } else {
                 gc.setFill(Color.ORANGE);
                 gc.fillOval(bullet.getPosition().getX(), bullet.getPosition().getY(), bullet.getWidth(), bullet.getHeight());
+            }
+        }
+    }
+
+    private void drawBossProjectiles() {
+        if (bossProjectiles.isEmpty()) {
+            return;
+        }
+
+        for (Projectile projectile : bossProjectiles) {
+            Sprite sprite = projectile.getSprite();
+            if (sprite != null) {
+                Image image = sprite.getImage();
+                double drawWidth = sprite.getWidth();
+                double drawHeight = sprite.getHeight();
+                double drawX = projectile.getPosition().getX();
+                double drawY = projectile.getPosition().getY();
+
+                gc.drawImage(image, drawX, drawY, drawWidth, drawHeight);
+            } else {
+                gc.setFill(Color.RED);
+                gc.fillOval(projectile.getPosition().getX(),
+                            projectile.getPosition().getY(),
+                            projectile.getWidth(), projectile.getHeight());
             }
         }
     }
@@ -710,7 +816,15 @@ public abstract class BaseStageScreen extends StackPane {
     }
 
     protected double getBulletSpriteScale() {
-        return 3.0;
+        return 1.6;
+    }
+
+    protected String getBossProjectileSpritePath() {
+        return "/se233/contra_project/sprites/EnemiesBullet.png";
+    }
+
+    protected double getBossProjectileSpriteScale() {
+        return 1.8;
     }
 
     private Image[] extractFrames(Image sheet, FrameRect[] rects) {

@@ -122,7 +122,9 @@ public class Boss1 extends Boss {
             double vx = Math.cos(angle) * 200; // 200 pixels/second
             double vy = Math.sin(angle) * 200;
 
-            Projectile projectile = new Projectile(centerX, centerY, vx, vy, Projectile.ProjectileType.STRAIGHT);
+            double startX = centerX - 4;
+            double startY = centerY - 4;
+            Projectile projectile = new Projectile(startX, startY, vx, vy, Projectile.ProjectileType.STRAIGHT);
             addProjectile(projectile);
         }
     }
