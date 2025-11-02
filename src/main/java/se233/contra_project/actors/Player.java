@@ -10,8 +10,8 @@ import se233.contra_project.core.components.SpriteAnimation;
  */
 public class Player extends Entity {
     private static final double PLAYER_SPEED = 200.0; // pixels per second
-    private static final double PLAYER_WIDTH = 48.0;
-    private static final double PLAYER_HEIGHT = 48.0;
+    private static final double PLAYER_WIDTH = 24;
+    private static final double PLAYER_HEIGHT = 24;
     private static final double JUMP_FORCE = -400.0; // negative for upward
     private static final double GRAVITY = 800.0; // pixels per second squared
 

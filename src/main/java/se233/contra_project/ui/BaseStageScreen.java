@@ -590,7 +590,7 @@ public abstract class BaseStageScreen extends StackPane {
     }
 
     protected double getPlayerSpriteScale() {
-        return 1.5;
+        return 1.15;
     }
 
     private Image[] extractFrames(Image sheet, FrameRect[] rects) {

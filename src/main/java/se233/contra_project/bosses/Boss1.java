@@ -25,10 +25,6 @@ public class Boss1 extends Boss {
     private static final double WIDTH_SCALE = 1.0;
     private static final double HEIGHT_SCALE = 1.8; // stretch vertically to emphasize wall height
     private static final int COLOR_KEY_TOLERANCE = 12;
-    private static final int[][] COLOR_KEYS = {
-            {255, 254, 255}, // Light blue outline pixels to remove
-            {0, 42, 136}     // Blue border pixels to remove
-    };
 
     private static final double BOSS_WIDTH = SPRITE_FRAME_WIDTH * WIDTH_SCALE;
     private static final double BOSS_HEIGHT = SPRITE_FRAME_HEIGHT * HEIGHT_SCALE;
@@ -68,11 +64,6 @@ public class Boss1 extends Boss {
                     SPRITE_FRAME_WIDTH,
                     SPRITE_FRAME_HEIGHT);
 
-            // Apply color key transparency so dark borders are invisible
-            PixelReader frameReader = frame.getPixelReader();
-            PixelWriter frameWriter = frame.getPixelWriter();
-            applyColorKeyTransparency(frameReader, frameWriter);
-
             Sprite bossSprite = new Sprite(frame,
                     SPRITE_FRAME_WIDTH * WIDTH_SCALE,
                     SPRITE_FRAME_HEIGHT * HEIGHT_SCALE);
@@ -82,33 +73,6 @@ public class Boss1 extends Boss {
         } catch (Exception e) {
             System.err.println("Failed to load Boss1 sprite: " + e.getMessage());
         }
-    }
-
-    private void applyColorKeyTransparency(PixelReader reader, PixelWriter writer) {
-        for (int y = 0; y < SPRITE_FRAME_HEIGHT; y++) {
-            for (int x = 0; x < SPRITE_FRAME_WIDTH; x++) {
-                int argb = reader.getArgb(x, y);
-                int red = (argb >> 16) & 0xFF;
-                int green = (argb >> 8) & 0xFF;
-                int blue = argb & 0xFF;
-
-                if (isColorKey(red, green, blue)) {
-                    argb &= 0x00FFFFFF; // clear alpha
-                }
-                writer.setArgb(x, y, argb);
-            }
-        }
-    }
-
-    private boolean isColorKey(int red, int green, int blue) {
-        for (int[] key : COLOR_KEYS) {
-            if (Math.abs(red - key[0]) <= COLOR_KEY_TOLERANCE &&
-                Math.abs(green - key[1]) <= COLOR_KEY_TOLERANCE &&
-                Math.abs(blue - key[2]) <= COLOR_KEY_TOLERANCE) {
-                return true;
-            }
-        }
-        return false;
     }
 
     @Override
