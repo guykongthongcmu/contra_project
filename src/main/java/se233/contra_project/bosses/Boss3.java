@@ -235,31 +235,7 @@ public class Boss3 extends Boss {
 
         WritableImage frame = new WritableImage(reader, frameX, frameY, RAW_FRAME_WIDTH, RAW_FRAME_HEIGHT);
 
-        if (flipHorizontal) {
-            frame = flipImageHorizontally(frame);
-        }
-
         return new Sprite(frame, frame.getWidth() * SPRITE_SCALE, frame.getHeight() * SPRITE_SCALE);
-    }
-
-    private WritableImage flipImageHorizontally(WritableImage image) {
-        PixelReader reader = image.getPixelReader();
-        if (reader == null) {
-            return image;
-        }
-
-        int width = (int) image.getWidth();
-        int height = (int) image.getHeight();
-        WritableImage flipped = new WritableImage(width, height);
-        PixelWriter writer = flipped.getPixelWriter();
-
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                writer.setArgb(width - 1 - x, y, reader.getArgb(x, y));
-            }
-        }
-
-        return flipped;
     }
 
     private void applyIdleSprite() {

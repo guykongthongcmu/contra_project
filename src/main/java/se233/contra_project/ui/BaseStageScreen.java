@@ -22,6 +22,7 @@ import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Shared behaviour for individual stage screens.
@@ -45,6 +46,7 @@ public abstract class BaseStageScreen extends StackPane {
     private final List<Projectile> bossProjectiles = new ArrayList<>();
     private Image bulletImage;
     private Image bossProjectileImage;
+    private final List<Image> bossProjectileFrames = new ArrayList<>();
 
     private boolean bossDefeatedNotified = false;
     private boolean exitTriggered = false;
@@ -130,9 +132,14 @@ public abstract class BaseStageScreen extends StackPane {
     }
 
     private void loadBossProjectileSprite() {
+        bossProjectileFrames.clear();
         try (InputStream stream = getClass().getResourceAsStream(getBossProjectileSpritePath())) {
             if (stream != null) {
                 bossProjectileImage = new Image(stream);
+                bossProjectileFrames.addAll(extractBossProjectileFrames(bossProjectileImage));
+                if (bossProjectileFrames.isEmpty() && bossProjectileImage != null) {
+                    bossProjectileFrames.add(bossProjectileImage);
+                }
             } else {
                 System.err.println("Boss projectile sprite not found at " + getBossProjectileSpritePath());
                 bossProjectileImage = null;
@@ -237,13 +244,102 @@ public abstract class BaseStageScreen extends StackPane {
         sprite.setPosition(adjustedX, adjustedY);
     }
 
+    private List<Image> extractBossProjectileFrames(Image sheet) {
+        List<Image> frames = new ArrayList<>();
+        if (sheet == null) {
+            return frames;
+        }
+
+        PixelReader reader = sheet.getPixelReader();
+        if (reader == null) {
+            return frames;
+        }
+
+        int width = (int) Math.round(sheet.getWidth());
+        int height = (int) Math.round(sheet.getHeight());
+        final int minBlankRun = 2;
+        final int padding = 2;
+
+        int startContentRow = -1;
+        int blankRun = 0;
+
+        for (int y = 0; y < height; y++) {
+            boolean hasContent = rowHasContent(reader, width, y);
+            if (hasContent) {
+                if (startContentRow == -1) {
+                    startContentRow = y;
+                }
+                blankRun = 0;
+            } else if (startContentRow != -1) {
+                blankRun++;
+                if (blankRun >= minBlankRun) {
+                    int endRow = y - blankRun;
+                    addBossProjectileFrame(frames, reader, width, height, startContentRow, endRow, padding);
+                    startContentRow = -1;
+                    blankRun = 0;
+                }
+            }
+        }
+
+        if (startContentRow != -1) {
+            addBossProjectileFrame(frames, reader, width, height, startContentRow, height - 1, padding);
+        }
+
+        return frames;
+    }
+
+    private void addBossProjectileFrame(List<Image> frames, PixelReader reader, int width, int height,
+                                        int startRow, int endRow, int padding) {
+        if (startRow > endRow) {
+            return;
+        }
+
+        int sliceY = Math.max(0, startRow - padding);
+        int sliceHeight = Math.min(height - sliceY, endRow - startRow + 1 + padding * 2);
+        if (sliceHeight <= 0) {
+            return;
+        }
+
+        frames.add(new WritableImage(reader, 0, sliceY, width, sliceHeight));
+    }
+
+    private boolean rowHasContent(PixelReader reader, int width, int y) {
+        for (int x = 0; x < width; x++) {
+            int argb = reader.getArgb(x, y);
+            int alpha = (argb >> 24) & 0xFF;
+            if (alpha == 0) {
+                continue;
+            }
+
+            int r = (argb >> 16) & 0xFF;
+            int g = (argb >> 8) & 0xFF;
+            int b = argb & 0xFF;
+
+            if (r > 10 || g > 10 || b > 10) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private Image chooseBossProjectileFrame() {
+        if (!bossProjectileFrames.isEmpty()) {
+            int index = ThreadLocalRandom.current().nextInt(bossProjectileFrames.size());
+            return bossProjectileFrames.get(index);
+        }
+        return bossProjectileImage;
+    }
+
     private void configureBossProjectileSprite(Projectile projectile) {
         if (bossProjectileImage == null) {
             return;
         }
 
         double scale = getBossProjectileSpriteScale();
-        Image frame = bossProjectileImage;
+        Image frame = chooseBossProjectileFrame();
+        if (frame == null) {
+            return;
+        }
         Sprite sprite = new Sprite(frame, frame.getWidth() * scale, frame.getHeight() * scale);
         projectile.setSprite(sprite);
         projectile.setWidth(sprite.getWidth());
