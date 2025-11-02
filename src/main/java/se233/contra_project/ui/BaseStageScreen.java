@@ -10,6 +10,8 @@ import javafx.scene.image.WritableImage;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
+import javafx.stage.Window;
+import se233.contra_project.Launcher;
 import se233.contra_project.actors.Bullet;
 import se233.contra_project.actors.Player;
 import se233.contra_project.actors.Projectile;
@@ -18,6 +20,7 @@ import se233.contra_project.core.components.Sprite;
 import se233.contra_project.core.components.SpriteAnimation;
 
 import java.io.InputStream;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.Iterator;
@@ -60,6 +63,7 @@ public abstract class BaseStageScreen extends StackPane {
 
     private boolean bossDefeatedNotified = false;
     private boolean exitTriggered = false;
+    private boolean gameOverTriggered = false;
 
     private static final int PLAYER_FRAME_PADDING = 2;
     private static final FrameRect[] PLAYER_IDLE_FRAMES = {
@@ -197,6 +201,7 @@ public abstract class BaseStageScreen extends StackPane {
         bossProjectiles.clear();
         bossDefeatedNotified = false;
         exitTriggered = false;
+        gameOverTriggered = false;
         onBossCreated(boss);
     }
 
@@ -566,6 +571,7 @@ public abstract class BaseStageScreen extends StackPane {
             positionPlayer(player);
         } else {
             System.out.println("Player defeated!");
+            onPlayerDefeated();
         }
     }
 
@@ -683,6 +689,8 @@ public abstract class BaseStageScreen extends StackPane {
         bossProjectiles.clear();
         bossDefeatedNotified = false;
         exitTriggered = false;
+        gameOverTriggered = false;
+        playerScore = 0;
         refreshHud();
     }
 
@@ -1014,6 +1022,10 @@ public abstract class BaseStageScreen extends StackPane {
         // Optional hook for subclasses
     }
 
+    protected void onPlayerDefeated() {
+        triggerGameOver(false);
+    }
+
     // Backwards-compatible hook; subclasses can override if needed
     protected void handleCustomKey(KeyCode code) {
         onCustomKeyPressed(code, true);
@@ -1057,6 +1069,47 @@ public abstract class BaseStageScreen extends StackPane {
 
     protected double getPlayerSpriteScale() {
         return 1.15;
+    }
+
+    protected final void triggerGameOver(boolean victory) {
+        if (gameOverTriggered) {
+            return;
+        }
+        gameOverTriggered = true;
+
+        Launcher launcher = resolveLauncher();
+        if (launcher != null) {
+            if (!invokeLauncherGameOver(launcher, playerScore, victory)) {
+                System.err.println("Launcher did not expose switchToGameOver; cannot display Game Over screen.");
+            }
+        } else {
+            System.err.println("Unable to resolve launcher; cannot display Game Over screen.");
+        }
+    }
+
+    private Launcher resolveLauncher() {
+        Window window = null;
+        if (getScene() != null) {
+            window = getScene().getWindow();
+        }
+        if (window == null) {
+            return null;
+        }
+        Object userData = window.getUserData();
+        if (userData instanceof Launcher) {
+            return (Launcher) userData;
+        }
+        return null;
+    }
+
+    private boolean invokeLauncherGameOver(Launcher launcher, int score, boolean victory) {
+        try {
+            Method method = launcher.getClass().getMethod("switchToGameOver", int.class, boolean.class);
+            method.invoke(launcher, score, victory);
+            return true;
+        } catch (ReflectiveOperationException e) {
+            return false;
+        }
     }
 
     protected String getBulletSpritePath() {

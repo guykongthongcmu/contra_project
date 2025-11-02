@@ -54,6 +54,11 @@ public class Stage3Screen extends BaseStageScreen {
     }
 
     @Override
+    protected void onBossDefeated() {
+        triggerGameOver(true);
+    }
+
+    @Override
     protected void handleCustomKey(KeyCode code) {
         onCustomKeyPressed(code, true);
     }
