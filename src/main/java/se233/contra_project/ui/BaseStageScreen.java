@@ -45,6 +45,7 @@ public abstract class BaseStageScreen extends StackPane {
     private final List<Bullet> playerBullets = new ArrayList<>();
     private final List<Projectile> bossProjectiles = new ArrayList<>();
     private Image bulletImage;
+    private Image bulletImpactFrame;
     private Image bossProjectileImage;
     private final List<Image> bossProjectileFrames = new ArrayList<>();
 
@@ -87,6 +88,7 @@ public abstract class BaseStageScreen extends StackPane {
 
         loadBackground();
         loadBulletSprite();
+        loadBulletImpactSprite();
         loadBossProjectileSprite();
         initializeBoss();
         initializePlayer();
@@ -128,6 +130,28 @@ public abstract class BaseStageScreen extends StackPane {
         } catch (Exception e) {
             System.err.println("Failed to load bullet sprite: " + e.getMessage());
             bulletImage = null;
+        }
+    }
+
+    private void loadBulletImpactSprite() {
+        bulletImpactFrame = null;
+        String path = getBulletImpactSpritePath();
+        if (path == null) {
+            return;
+        }
+
+        try (InputStream stream = getClass().getResourceAsStream(path)) {
+            if (stream != null) {
+                Image sheet = new Image(stream);
+                bulletImpactFrame = extractBulletImpactFrame(sheet);
+                if (bulletImpactFrame == null) {
+                    System.err.println("Failed to extract bullet impact frame from sheet at " + path);
+                }
+            } else {
+                System.err.println("Bullet impact sprite not found at " + path);
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to load bullet impact sprite: " + e.getMessage());
         }
     }
 
@@ -242,6 +266,53 @@ public abstract class BaseStageScreen extends StackPane {
 
         bullet.setPosition(adjustedX, adjustedY);
         sprite.setPosition(adjustedX, adjustedY);
+    }
+
+    private Image extractBulletImpactFrame(Image sheet) {
+        if (sheet == null) {
+            return null;
+        }
+
+        PixelReader reader = sheet.getPixelReader();
+        if (reader == null) {
+            return null;
+        }
+
+        int columns = Math.max(1, getBulletImpactColumnCount());
+        int columnIndex = Math.max(0, Math.min(getBulletImpactColumnIndex(), columns - 1));
+
+        int sheetWidth = (int) Math.round(sheet.getWidth());
+        int sheetHeight = (int) Math.round(sheet.getHeight());
+        if (sheetWidth <= 0 || sheetHeight <= 0) {
+            return null;
+        }
+
+        double exactFrameWidth = sheetWidth / (double) columns;
+        int xStart = (int) Math.round(columnIndex * exactFrameWidth);
+        int xEnd = (int) Math.round((columnIndex + 1) * exactFrameWidth);
+        xStart = Math.max(0, Math.min(sheetWidth - 1, xStart));
+        xEnd = Math.max(xStart + 1, Math.min(sheetWidth, xEnd));
+        int frameWidth = xEnd - xStart;
+        if (frameWidth <= 0) {
+            return null;
+        }
+
+        return new WritableImage(reader, xStart, 0, frameWidth, sheetHeight);
+    }
+
+    private void triggerBulletImpact(Bullet bullet) {
+        if (bullet == null || bullet.isImpactActive()) {
+            return;
+        }
+
+        if (bulletImpactFrame == null) {
+            bullet.setAlive(false);
+            return;
+        }
+
+        double scale = getBulletImpactSpriteScale();
+        double duration = getBulletImpactDuration();
+        bullet.triggerImpact(bulletImpactFrame, scale, duration);
     }
 
     private List<Image> extractBossProjectileFrames(Image sheet) {
@@ -431,10 +502,9 @@ public abstract class BaseStageScreen extends StackPane {
                 continue;
             }
 
-            if (boss != null && boss.isAlive() && bullet.collidesWith(boss)) {
+            if (boss != null && boss.isAlive() && !bullet.isImpactActive() && bullet.collidesWith(boss)) {
                 damageBoss(bullet.getDamage());
-                bullet.setAlive(false);
-                iterator.remove();
+                triggerBulletImpact(bullet);
             }
         }
     }
@@ -954,6 +1024,26 @@ public abstract class BaseStageScreen extends StackPane {
 
     protected double getBulletSpriteScale() {
         return 1.6;
+    }
+
+    protected String getBulletImpactSpritePath() {
+        return "/se233/contra_project/sprites/Enemies bomb.png";
+    }
+
+    protected int getBulletImpactColumnCount() {
+        return 3;
+    }
+
+    protected int getBulletImpactColumnIndex() {
+        return 1;
+    }
+
+    protected double getBulletImpactSpriteScale() {
+        return 1.6;
+    }
+
+    protected double getBulletImpactDuration() {
+        return 0.25;
     }
 
     protected String getBossProjectileSpritePath() {

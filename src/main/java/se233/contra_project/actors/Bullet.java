@@ -1,5 +1,6 @@
 package se233.contra_project.actors;
 
+import javafx.scene.image.Image;
 import se233.contra_project.core.Entity;
 import se233.contra_project.core.components.Sprite;
 
@@ -12,9 +13,13 @@ public class Bullet extends Entity {
     private static final double BULLET_WIDTH = 10.0;
     private static final double BULLET_HEIGHT = 6.0;
     private static final int BULLET_DAMAGE = 5;
+    private static final double IMPACT_DURATION_DEFAULT = 0.2;
 
     private Sprite sprite;
     private boolean fromPlayer; // true if fired by player, false if enemy projectile
+    private boolean impactActive;
+    private double impactTimer;
+    private double impactDuration = IMPACT_DURATION_DEFAULT;
 
     public Bullet(double x, double y, boolean movingRight, boolean fromPlayer) {
         super(x, y, BULLET_WIDTH, BULLET_HEIGHT);
@@ -30,6 +35,17 @@ public class Bullet extends Entity {
 
     @Override
     public void update(double deltaTime) {
+        if (impactActive) {
+            impactTimer += deltaTime;
+            if (sprite != null) {
+                sprite.setPosition(this.position.getX(), this.position.getY());
+            }
+            if (impactTimer >= impactDuration) {
+                this.alive = false;
+            }
+            return;
+        }
+
         // Move bullet based on velocity
         double newX = this.position.getX() + this.velocity.getX() * deltaTime;
         double newY = this.position.getY() + this.velocity.getY() * deltaTime;
@@ -82,5 +98,49 @@ public class Bullet extends Entity {
             this.height = sprite.getHeight();
             sprite.setPosition(this.position.getX(), this.position.getY());
         }
+    }
+
+    /**
+     * Trigger an impact animation for the bullet before it disappears.
+     * @param impactImage image representing the impact frame
+     * @param scale desired scale for the impact sprite
+     * @param durationSeconds how long the impact effect should remain visible
+     */
+    public void triggerImpact(Image impactImage, double scale, double durationSeconds) {
+        if (impactActive) {
+            return;
+        }
+
+        if (impactImage == null) {
+            this.alive = false;
+            return;
+        }
+
+        impactActive = true;
+        impactTimer = 0;
+        impactDuration = durationSeconds > 0 ? durationSeconds : IMPACT_DURATION_DEFAULT;
+
+        double centerX = this.position.getX() + this.width / 2.0;
+        double centerY = this.position.getY() + this.height / 2.0;
+
+        // Stop further movement so the impact stays in place
+        this.setVelocity(0, 0);
+
+        Sprite impactSprite = new Sprite(impactImage, impactImage.getWidth() * scale, impactImage.getHeight() * scale);
+        setSprite(impactSprite);
+
+        double newX = centerX - this.width / 2.0;
+        double newY = centerY - this.height / 2.0;
+        this.setPosition(newX, newY);
+        if (this.sprite != null) {
+            this.sprite.setPosition(newX, newY);
+        }
+    }
+
+    /**
+     * Indicates whether the bullet is currently displaying its impact effect.
+     */
+    public boolean isImpactActive() {
+        return impactActive;
     }
 }
