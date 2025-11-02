@@ -1,5 +1,6 @@
 package se233.contra_project.game.systems;
 
+import javafx.embed.swing.SwingFXUtils;
 import se233.contra_project.core.Entity;
 import se233.contra_project.core.components.Sprite;
 import se233.contra_project.core.components.SpriteAnimation;

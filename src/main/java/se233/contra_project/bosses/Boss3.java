@@ -12,7 +12,7 @@ import se233.contra_project.core.components.Sprite;
  * Uses supplied sprite sheet and projectile art.
  */
 public class Boss3 extends Boss {
-    private static final String SPRITE_SHEET_PATH = "/se233/contra_project/sprites/Boss3_Right.png";
+    private static final String SPRITE_SHEET_PATH = "/se233/contra_project/sprites/Boss3_Left.png";
     private static final double SPRITE_SCALE = 0.35;
 
     // Frame dimensions determined from sheet (first column)
