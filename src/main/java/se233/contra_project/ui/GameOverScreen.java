@@ -67,13 +67,9 @@ public class GameOverScreen extends JPanel {
     }
 
     private void backToStart() {
-        JFrame frame = (JFrame) SwingUtilities.getWindowAncestor(this);
-        StartScreen start = new StartScreen();
-        frame.setContentPane(start);
-        frame.revalidate();
-        frame.repaint();
-        SwingUtilities.invokeLater(start::requestFocusInWindow);
-        starTimer.stop();
+        // Since we're now using JavaFX, we need to handle this differently
+        // For now, just exit the application
+        System.exit(0);
     }
 
     @Override
