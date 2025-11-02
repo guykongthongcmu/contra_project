@@ -1,7 +1,6 @@
 package se233.contra_project.ui;
 
 import javafx.animation.AnimationTimer;
-import javafx.embed.swing.SwingNode;
 import javafx.geometry.Pos;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
@@ -18,7 +17,6 @@ import se233.contra_project.bosses.Boss;
 import se233.contra_project.core.components.Sprite;
 import se233.contra_project.core.components.SpriteAnimation;
 
-import javax.swing.SwingUtilities;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -55,7 +53,6 @@ public abstract class BaseStageScreen extends StackPane {
     private Image bulletImpactFrame;
     private Image bossProjectileImage;
     private final List<Image> bossProjectileFrames = new ArrayList<>();
-    private final SwingNode hudNode;
     private final HUDOverlay hudOverlay;
     private int playerScore = 0;
     private int lastHudLives = -1;
@@ -97,14 +94,12 @@ public abstract class BaseStageScreen extends StackPane {
         canvas = new Canvas(CANVAS_WIDTH, CANVAS_HEIGHT);
         gc = canvas.getGraphicsContext2D();
         hudOverlay = new HUDOverlay();
-        hudNode = new SwingNode();
-        hudNode.setMouseTransparent(true);
-        hudNode.setFocusTraversable(false);
-        hudNode.setContent(hudOverlay);
-        StackPane.setAlignment(hudNode, Pos.TOP_LEFT);
+        hudOverlay.setMouseTransparent(true);
+        hudOverlay.setFocusTraversable(false);
+        StackPane.setAlignment(hudOverlay, Pos.TOP_LEFT);
 
         getChildren().add(canvas);
-        getChildren().add(hudNode);
+        getChildren().add(hudOverlay);
 
         loadBackground();
         loadBulletSprite();
@@ -347,7 +342,7 @@ public abstract class BaseStageScreen extends StackPane {
         }
         lastHudLives = lives;
         lastHudScore = scoreSnapshot;
-        SwingUtilities.invokeLater(() -> hudOverlay.updateHUD(lives, scoreSnapshot));
+        hudOverlay.updateHUD(lives, scoreSnapshot);
     }
 
     protected void addScore(int points) {
