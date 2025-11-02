@@ -5,7 +5,7 @@ import java.awt.*;
 import java.io.File;
 
 public class HUDOverlay extends JPanel {
-    private int playerLives = 4;
+    private int playerLives = 3;
     private int playerScore = 0;
     private Image lifeIcon; // รูปไอคอนชีวิต
 

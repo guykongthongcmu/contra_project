@@ -95,9 +95,9 @@ public class Boss3 extends Boss {
         double centerY = this.position.getY() + this.height / 2;
 
         int numCodeLines = 5;
+        double spreadAngle = Math.toRadians(30);
+        double baseAngle = Math.PI - spreadAngle / 2;
         for (int i = 0; i < numCodeLines; i++) {
-            double spreadAngle = Math.toRadians(30);
-            double baseAngle = -spreadAngle / 2;
             double angle = baseAngle + (spreadAngle * i / (numCodeLines - 1));
 
             double vx = Math.cos(angle) * 180;
@@ -176,8 +176,11 @@ public class Boss3 extends Boss {
         double compileX = this.position.getX() + this.width / 2;
         double compileY = this.position.getY() + this.height;
 
-        for (int i = 0; i < 12; i++) {
-            double angle = (2 * Math.PI * i) / 12;
+        int projectiles = 12;
+        double spreadAngle = Math.toRadians(160);
+        double baseAngle = Math.PI - spreadAngle / 2;
+        for (int i = 0; i < projectiles; i++) {
+            double angle = baseAngle + (spreadAngle * i / (projectiles - 1));
             double vx = Math.cos(angle) * 300;
             double vy = Math.sin(angle) * 300;
 

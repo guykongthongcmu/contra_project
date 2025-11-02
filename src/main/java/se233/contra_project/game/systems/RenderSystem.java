@@ -84,9 +84,6 @@ public class RenderSystem {
             graphics.fillRect((int)x, (int)y, (int)width, (int)height);
         }
 
-        // Draw entity bounds for debugging (only in debug mode)
-        graphics.setColor(Color.WHITE);
-        graphics.drawRect((int)x, (int)y, (int)width, (int)height);
     }
 
     /**
