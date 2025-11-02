@@ -46,6 +46,9 @@ public abstract class BaseStageScreen extends StackPane {
     private Image bulletImage;
     private Image bossProjectileImage;
 
+    private boolean bossDefeatedNotified = false;
+    private boolean exitTriggered = false;
+
     private static final int PLAYER_FRAME_PADDING = 2;
     private static final FrameRect[] PLAYER_IDLE_FRAMES = {
             frame(230, 13, 270, 125)   // row 1, column 3 (standing)
@@ -146,6 +149,8 @@ public abstract class BaseStageScreen extends StackPane {
             throw new IllegalStateException("Stage must provide a boss instance.");
         }
         bossProjectiles.clear();
+        bossDefeatedNotified = false;
+        exitTriggered = false;
         onBossCreated(boss);
     }
 
@@ -354,6 +359,22 @@ public abstract class BaseStageScreen extends StackPane {
         }
     }
 
+    private void checkStageProgression() {
+        if (!bossDefeatedNotified && boss != null && !boss.isAlive()) {
+            bossDefeatedNotified = true;
+            onBossDefeated();
+        }
+
+        if (bossDefeatedNotified && !exitTriggered && player != null) {
+            double playerRight = player.getPosition().getX() + player.getWidth();
+            double threshold = getStageExitTriggerX();
+            if (playerRight >= threshold) {
+                exitTriggered = true;
+                onPlayerReachedExitAfterBossDefeat();
+            }
+        }
+    }
+
     private void syncBossProjectiles() {
         if (boss == null) {
             return;
@@ -369,9 +390,11 @@ public abstract class BaseStageScreen extends StackPane {
 
 
         Iterator<Projectile> iterator = bossProjectiles.iterator();
+        boolean bossAlive = boss != null && boss.isAlive();
         while (iterator.hasNext()) {
             Projectile projectile = iterator.next();
-            if (!projectile.isAlive()) {
+            if (!projectile.isAlive() || !bossAlive) {
+                projectile.setAlive(false);
                 iterator.remove();
                 continue;
             }
@@ -443,6 +466,8 @@ public abstract class BaseStageScreen extends StackPane {
         }
         playerBullets.clear();
         bossProjectiles.clear();
+        bossDefeatedNotified = false;
+        exitTriggered = false;
     }
 
     private void startAnimationTimer() {
@@ -474,6 +499,8 @@ public abstract class BaseStageScreen extends StackPane {
                 if (healthBar != null) {
                     healthBar.update(deltaTime);
                 }
+
+                checkStageProgression();
 
                 draw();
             }
@@ -708,7 +735,7 @@ public abstract class BaseStageScreen extends StackPane {
     }
 
     protected void damageBoss(int damage) {
-        if (boss == null) {
+        if (boss == null || !boss.isAlive()) {
             return;
         }
         boss.takeDamage(damage);
@@ -762,6 +789,14 @@ public abstract class BaseStageScreen extends StackPane {
     }
 
     protected void onCustomKeyReleased(KeyCode code) {
+        // Optional hook for subclasses
+    }
+
+    protected void onBossDefeated() {
+        // Optional hook for subclasses
+    }
+
+    protected void onPlayerReachedExitAfterBossDefeat() {
         // Optional hook for subclasses
     }
 
@@ -823,7 +858,11 @@ public abstract class BaseStageScreen extends StackPane {
     }
 
     protected double getBossProjectileSpriteScale() {
-        return 2.5;
+        return 1.8;
+    }
+
+    protected double getStageExitTriggerX() {
+        return getCanvasNode().getWidth() - 40;
     }
 
     private Image[] extractFrames(Image sheet, FrameRect[] rects) {

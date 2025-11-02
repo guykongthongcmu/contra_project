@@ -33,10 +33,10 @@ public class Launcher extends Application {
         startScene = new Scene(startScreen, WINDOW_WIDTH, WINDOW_HEIGHT);
 
         // Create Stage screens
-        Stage1Screen stage1Screen = new Stage1Screen();
+        Stage1Screen stage1Screen = new Stage1Screen(() -> switchToStage(2));
         stage1Scene = new Scene(stage1Screen, WINDOW_WIDTH, WINDOW_HEIGHT);
 
-        Stage2Screen stage2Screen = new Stage2Screen();
+        Stage2Screen stage2Screen = new Stage2Screen(() -> switchToStage(3));
         stage2Scene = new Scene(stage2Screen, WINDOW_WIDTH, WINDOW_HEIGHT);
 
         Stage3Screen stage3Screen = new Stage3Screen();

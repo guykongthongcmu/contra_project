@@ -12,6 +12,15 @@ public class Stage2Screen extends BaseStageScreen {
     private static final String STAGE_TITLE = "Stage 2 - Boss Fight";
     private static final String BOSS_NAME = "Boss2 - Java Core";
     private static final String SPRITE_INFO = "Bosses2Java.png";
+    private final Runnable advanceToStage3;
+
+    public Stage2Screen() {
+        this(null);
+    }
+
+    public Stage2Screen(Runnable advanceToStage3) {
+        this.advanceToStage3 = advanceToStage3;
+    }
 
     @Override
     protected Boss createBoss() {
@@ -51,6 +60,20 @@ public class Stage2Screen extends BaseStageScreen {
     @Override
     protected void onBossCreated(Boss boss) {
         positionBossCenter(boss);
+    }
+
+    @Override
+    protected void onBossDefeated() {
+        System.out.println("Boss2 defeated! Head to the right edge to advance.");
+    }
+
+    @Override
+    protected void onPlayerReachedExitAfterBossDefeat() {
+        if (advanceToStage3 != null) {
+            advanceToStage3.run();
+        } else {
+            System.out.println("Advance callback not set; cannot switch to Stage 3.");
+        }
     }
 
     @Override
