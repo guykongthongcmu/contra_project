@@ -831,14 +831,6 @@ public abstract class BaseStageScreen extends StackPane {
                 );
             }
 
-            gc.setStroke(Color.CYAN);
-            gc.setLineWidth(2);
-            gc.strokeRect(
-                    boss.getPosition().getX(),
-                    boss.getPosition().getY(),
-                    boss.getWidth(),
-                    boss.getHeight()
-            );
         } catch (Exception e) {
             System.err.println("Error drawing boss: " + e.getMessage());
         }
