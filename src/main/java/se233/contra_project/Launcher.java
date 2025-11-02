@@ -4,7 +4,6 @@ import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import se233.contra_project.game.GameSession;
-import se233.contra_project.logging.LogConfig;
 import se233.contra_project.ui.BaseStageScreen;
 import se233.contra_project.ui.GameOverScreen;
 import se233.contra_project.ui.Stage1Screen;
@@ -135,7 +134,6 @@ public class Launcher extends Application {
     }
 
     public static void main(String[] args) {
-        LogConfig.configure();
         launch(args);
     }
 }

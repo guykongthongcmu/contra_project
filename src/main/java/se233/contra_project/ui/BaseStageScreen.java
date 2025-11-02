@@ -31,16 +31,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.logging.Logger;
 
-import se233.contra_project.logging.LogConfig;
+import se233.contra_project.logging.GameLogger;
 
 /**
  * Shared behaviour for individual stage screens.
  * Handles canvas setup, background rendering, boss lifecycle, and HUD overlays.
  */
 public abstract class BaseStageScreen extends StackPane {
-    private static final Logger LOGGER = LogConfig.getLogger(BaseStageScreen.class);
     private static final int CANVAS_WIDTH = 800;
     private static final int CANVAS_HEIGHT = 600;
 
@@ -383,16 +381,13 @@ public abstract class BaseStageScreen extends StackPane {
 
     protected void addScore(int points) {
         if (points <= 0) {
-            LOGGER.fine(() -> String.format("Ignoring non-positive score increment: %d", points));
+            GameLogger.logScore("Ignoring non-positive score increment: %d", points);
             return;
         }
         GameSession activeSession = getActiveSession();
         int updatedScore = activeSession.addScore(points);
         playerScore = updatedScore;
-        LOGGER.info(() -> String.format(
-                "Score increased by %d | total=%d",
-                points, updatedScore
-        ));
+        GameLogger.logScore("Score increased by %d | total=%d", points, updatedScore);
         refreshHud();
     }
 
@@ -1193,7 +1188,6 @@ public abstract class BaseStageScreen extends StackPane {
         }
 
         if (launcher == null) {
-            LOGGER.warning("Unable to resolve launcher; cannot switch to Game Over screen.");
             return;
         }
 

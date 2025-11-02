@@ -3,16 +3,14 @@ package se233.contra_project.actors;
 import se233.contra_project.core.Entity;
 import se233.contra_project.core.components.Sprite;
 import se233.contra_project.core.components.SpriteAnimation;
-import se233.contra_project.logging.LogConfig;
+import se233.contra_project.logging.GameLogger;
 
-import java.util.logging.Logger;
 
 /**
  * Player class represents the controllable character
  * Handles movement, shooting, and player-specific logic
  */
 public class Player extends Entity {
-    private static final Logger LOGGER = LogConfig.getLogger(Player.class);
     private static final double PLAYER_SPEED = 200.0; // pixels per second
     private static final double PLAYER_WIDTH = 24;
     private static final double PLAYER_HEIGHT = 24;
@@ -78,7 +76,6 @@ public class Player extends Entity {
      */
     public void moveLeft() {
         if (prone) {
-            LOGGER.fine("Ignored moveLeft request while prone");
             return;
         }
         boolean stateChanged = false;
@@ -91,11 +88,11 @@ public class Player extends Entity {
             stateChanged = true;
         }
         if (stateChanged) {
-            LOGGER.fine(() -> String.format(
+            GameLogger.logMovement(
                     "Moving left | pos=(%.2f, %.2f) vel=(%.2f, %.2f)",
                     position.getX(), position.getY(),
                     velocity.getX(), velocity.getY()
-            ));
+            );
         }
         if (onGround) {
             playWalkAnimation();
@@ -107,7 +104,6 @@ public class Player extends Entity {
      */
     public void moveRight() {
         if (prone) {
-            LOGGER.fine("Ignored moveRight request while prone");
             return;
         }
         boolean stateChanged = false;
@@ -120,11 +116,11 @@ public class Player extends Entity {
             stateChanged = true;
         }
         if (stateChanged) {
-            LOGGER.fine(() -> String.format(
+            GameLogger.logMovement(
                     "Moving right | pos=(%.2f, %.2f) vel=(%.2f, %.2f)",
                     position.getX(), position.getY(),
                     velocity.getX(), velocity.getY()
-            ));
+            );
         }
         if (onGround) {
             playWalkAnimation();
@@ -137,10 +133,10 @@ public class Player extends Entity {
     public void stopMoving() {
         if (Math.abs(this.velocity.getX()) > 1e-3) {
             this.setVelocity(0, this.velocity.getY());
-            LOGGER.fine(() -> String.format(
+            GameLogger.logMovement(
                     "Stopping movement | pos=(%.2f, %.2f)",
                     position.getX(), position.getY()
-            ));
+            );
         }
         if (!prone && onGround) {
             playIdleAnimation();
@@ -154,16 +150,16 @@ public class Player extends Entity {
         if (onGround && !prone) {
             this.setVelocity(this.velocity.getX(), JUMP_FORCE);
             onGround = false;
-            LOGGER.info(() -> String.format(
+            GameLogger.logAction(
                     "Jump initiated | pos=(%.2f, %.2f) vel=(%.2f, %.2f)",
                     position.getX(), position.getY(),
                     velocity.getX(), velocity.getY()
-            ));
+            );
             if (jumpAnimation != null) {
                 playJumpAnimation();
             }
         } else {
-            LOGGER.fine("Jump request ignored (not on ground or currently prone)");
+            GameLogger.logAction("Jump request ignored (not on ground or currently prone)");
         }
     }
 
@@ -185,17 +181,17 @@ public class Player extends Entity {
             double bulletY = this.position.getY() + this.height * 0.45;
             Bullet bullet = new Bullet(bulletX, bulletY, facingRight, true);
             shootCooldown = SHOOT_COOLDOWN_TIME;
-            LOGGER.info(() -> String.format(
+            GameLogger.logAction(
                     "Shot fired | dir=%s origin=(%.2f, %.2f)",
                     facingRight ? "RIGHT" : "LEFT",
                     bulletX, bulletY
-            ));
+            );
             return bullet;
         }
-        LOGGER.fine(() -> String.format(
+        GameLogger.logMovement(
                 "Shoot request ignored due to cooldown (%.2fs remaining)",
                 shootCooldown
-        ));
+        );
         return null;
     }
 
@@ -204,13 +200,13 @@ public class Player extends Entity {
      */
     public void loseLife() {
         lives--;
-        LOGGER.warning(() -> String.format(
+        GameLogger.logAction(
                 "Player lost a life | remaining=%d",
                 Math.max(lives, 0)
-        ));
+        );
         if (lives <= 0) {
             this.alive = false;
-            LOGGER.severe("Player has died");
+            GameLogger.logAction("Player has died");
         }
     }
 
@@ -289,33 +285,29 @@ public class Player extends Entity {
 
     public void setProne(boolean value) {
         if (this.prone == value) {
-            LOGGER.fine(() -> String.format(
-                    "Prone state unchanged (%s)",
-                    value ? "PRONE" : "STANDING"
-            ));
             return;
         }
         this.prone = value;
         if (prone) {
             this.setVelocity(0, this.velocity.getY());
             playProneAnimation();
-            LOGGER.info(() -> String.format(
+            GameLogger.logAction(
                     "Player entered prone | pos=(%.2f, %.2f)",
                     position.getX(), position.getY()
-            ));
+            );
         } else if (this.velocity.getX() != 0) {
             playWalkAnimation();
-            LOGGER.info(() -> String.format(
+            GameLogger.logAction(
                     "Player exited prone while moving | pos=(%.2f, %.2f) vel=(%.2f, %.2f)",
                     position.getX(), position.getY(),
                     velocity.getX(), velocity.getY()
-            ));
+            );
         } else {
             playIdleAnimation();
-            LOGGER.info(() -> String.format(
+            GameLogger.logAction(
                     "Player exited prone | pos=(%.2f, %.2f)",
                     position.getX(), position.getY()
-            ));
+            );
         }
     }
 

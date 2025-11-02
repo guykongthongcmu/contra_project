@@ -4,7 +4,6 @@ import se233.contra_project.actors.Player;
 import se233.contra_project.actors.Bullet;
 import se233.contra_project.actors.Projectile;
 import se233.contra_project.bosses.Boss;
-import se233.contra_project.bosses.Boss3;
 import se233.contra_project.core.Entity;
 import se233.contra_project.game.input.InputHandler;
 import se233.contra_project.game.systems.RenderSystem;
