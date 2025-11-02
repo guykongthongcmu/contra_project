@@ -1,6 +1,10 @@
 package se233.contra_project.bosses;
 
+import javafx.scene.image.Image;
+import javafx.scene.image.PixelReader;
+import javafx.scene.image.WritableImage;
 import se233.contra_project.actors.Projectile;
+import se233.contra_project.core.components.Sprite;
 
 /**
  * Boss2 - Java
@@ -8,8 +12,8 @@ import se233.contra_project.actors.Projectile;
  * Based on the Java-themed boss from Contra
  */
 public class Boss2 extends Boss {
-    private static final double BOSS_WIDTH = 80.0;
-    private static final double BOSS_HEIGHT = 80.0;
+    private static final double BOSS_WIDTH = 112.0;
+    private static final double BOSS_HEIGHT = 113.0;
     private static final int BOSS_HEALTH = 15;
     private static final int BOSS_SCORE = 2;
 
@@ -20,20 +24,28 @@ public class Boss2 extends Boss {
     private double moveTimer;
     private static final double DIRECTION_CHANGE_TIME = 3.0; // change direction every 3 seconds
 
+    private Sprite idleSprite;
+    private Sprite attackSprite;
+    private Sprite deadSprite;
+
     public Boss2(double x, double y) {
         super(x, y, BOSS_WIDTH, BOSS_HEIGHT, BOSS_HEALTH, BOSS_SCORE);
         this.attackTimer = 0;
         this.moveDirection = 0; // start moving right
         this.moveTimer = 0;
 
-        // Initialize sprite (placeholder - would load actual Java boss sprite)
-        // this.sprite = new Sprite("path/to/java_boss.png", BOSS_WIDTH, BOSS_HEIGHT);
+        loadSprites();
+        applySprite(idleSprite);
     }
 
     @Override
     protected void updateIdle(double deltaTime) {
         attackTimer += deltaTime;
         moveTimer += deltaTime;
+
+        if (this.getSprite() != idleSprite) {
+            applySprite(idleSprite);
+        }
 
         // Change movement direction periodically
         if (moveTimer >= DIRECTION_CHANGE_TIME) {
@@ -79,6 +91,7 @@ public class Boss2 extends Boss {
         if (stateTimer >= 0.8) {
             currentState = BossState.IDLE;
             stateTimer = 0;
+            applySprite(idleSprite);
         }
     }
 
@@ -92,6 +105,8 @@ public class Boss2 extends Boss {
     protected void performAttack() {
         double centerX = this.position.getX() + this.width / 2;
         double centerY = this.position.getY() + this.height / 2;
+
+        applySprite(attackSprite != null ? attackSprite : idleSprite);
 
         // Perform a circular spread attack - fire projectiles in all directions
         int numProjectiles = 8;
@@ -141,6 +156,50 @@ public class Boss2 extends Boss {
             // For now, just random direction change
             moveDirection += Math.PI / 4; // turn 45 degrees
             moveTimer = DIRECTION_CHANGE_TIME / 2; // change direction sooner
+        } else if (deadSprite != null) {
+            applySprite(deadSprite);
         }
+    }
+
+    private void loadSprites() {
+        try {
+            idleSprite = loadSpriteResource("/se233/contra_project/sprites/Bosses2Java.png", 112);
+            attackSprite = loadSpriteResource("/se233/contra_project/sprites/Bosses2JavaAttack.png", 0);
+            deadSprite = loadSpriteResource("/se233/contra_project/sprites/Bosses2JavaDead.png", 0);
+        } catch (Exception e) {
+            System.err.println("Failed to load Boss2 sprites: " + e.getMessage());
+        }
+    }
+
+    private Sprite loadSpriteResource(String path, int cropWidth) {
+        try (java.io.InputStream stream = getClass().getResourceAsStream(path)) {
+            if (stream == null) {
+                System.err.println("Sprite resource not found at " + path);
+                return null;
+            }
+            Image image = new Image(stream);
+            if (cropWidth > 0 && image.getWidth() > cropWidth) {
+                PixelReader reader = image.getPixelReader();
+                if (reader != null) {
+                    WritableImage frame = new WritableImage(reader, 0, 0, cropWidth, (int) image.getHeight());
+                    return new Sprite(frame, frame.getWidth(), frame.getHeight());
+                }
+            }
+            return new Sprite(image, image.getWidth(), image.getHeight());
+        } catch (Exception e) {
+            System.err.println("Failed to load sprite from " + path + ": " + e.getMessage());
+            return null;
+        }
+    }
+
+    private void applySprite(Sprite sprite) {
+        if (sprite == null) {
+            return;
+        }
+
+        setSprite(sprite);
+        setWidth(sprite.getWidth());
+        setHeight(sprite.getHeight());
+        sprite.setPosition(this.position.getX(), this.position.getY());
     }
 }

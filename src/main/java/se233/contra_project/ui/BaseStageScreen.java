@@ -381,16 +381,17 @@ public abstract class BaseStageScreen extends StackPane {
         }
 
         List<Projectile> bossList = boss.getProjectiles();
-        for (Projectile projectile : bossList) {
-            if (!bossProjectiles.contains(projectile)) {
-                configureBossProjectileSprite(projectile);
-                bossProjectiles.add(projectile);
+        boolean bossAlive = boss.isAlive();
+        if (bossAlive) {
+            for (Projectile projectile : bossList) {
+                if (!bossProjectiles.contains(projectile)) {
+                    configureBossProjectileSprite(projectile);
+                    bossProjectiles.add(projectile);
+                }
             }
         }
 
-
         Iterator<Projectile> iterator = bossProjectiles.iterator();
-        boolean bossAlive = boss != null && boss.isAlive();
         while (iterator.hasNext()) {
             Projectile projectile = iterator.next();
             if (!projectile.isAlive() || !bossAlive) {
@@ -403,6 +404,10 @@ public abstract class BaseStageScreen extends StackPane {
                 handlePlayerHit(projectile);
                 iterator.remove();
             }
+        }
+
+        if (!bossAlive) {
+            bossList.clear();
         }
     }
 
@@ -493,7 +498,9 @@ public abstract class BaseStageScreen extends StackPane {
                 updateBullets(deltaTime);
 
                 if (boss != null) {
-                    boss.update(deltaTime);
+                    if (boss.isAlive()) {
+                        boss.update(deltaTime);
+                    }
                     syncBossProjectiles();
                 }
                 if (healthBar != null) {

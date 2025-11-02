@@ -77,6 +77,16 @@ public class Stage2Screen extends BaseStageScreen {
     }
 
     @Override
+    protected String getBossProjectileSpritePath() {
+        return "/se233/contra_project/sprites/Boss2JavaBullet.png";
+    }
+
+    @Override
+    protected double getBossProjectileSpriteScale() {
+        return 0.35;
+    }
+
+    @Override
     protected void handleCustomKey(KeyCode code) {
         onCustomKeyPressed(code, true);
     }

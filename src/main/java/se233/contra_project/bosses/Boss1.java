@@ -3,7 +3,6 @@ package se233.contra_project.bosses;
 import javafx.scene.image.Image;
 import javafx.scene.image.PixelReader;
 import javafx.scene.image.WritableImage;
-import javafx.scene.image.PixelWriter;
 import java.io.InputStream;
 import se233.contra_project.actors.Projectile;
 import se233.contra_project.core.components.Sprite;
@@ -16,18 +15,14 @@ import se233.contra_project.core.components.Sprite;
 public class Boss1 extends Boss {
     private static final String SPRITE_SHEET_PATH = "/se233/contra_project/sprites/Bosses1DefenseWall.png";
 
-    // Sprite sheet crop (source data derived from sheet analysis)
-    private static final int SPRITE_FRAME_X = 3;
-    private static final int SPRITE_FRAME_Y = 63;
-    private static final int SPRITE_FRAME_WIDTH = 156;
-    private static final int SPRITE_FRAME_HEIGHT = 94;
+    private Sprite aliveSprite;
+    private Sprite deadSprite;
 
     private static final double WIDTH_SCALE = 1.0;
-    private static final double HEIGHT_SCALE = 3.0; // stretch vertically to emphasize wall height
-    private static final int COLOR_KEY_TOLERANCE = 12;
+    private static final double HEIGHT_SCALE = 1.0;
 
-    private static final double BOSS_WIDTH = SPRITE_FRAME_WIDTH * WIDTH_SCALE;
-    private static final double BOSS_HEIGHT = SPRITE_FRAME_HEIGHT * HEIGHT_SCALE;
+    private static final double BOSS_WIDTH = 112 * WIDTH_SCALE;
+    private static final double BOSS_HEIGHT = 192 * HEIGHT_SCALE;
     private static final int BOSS_HEALTH = 10;
     private static final int BOSS_SCORE = 2;
 
@@ -47,29 +42,36 @@ public class Boss1 extends Boss {
     }
 
     private void loadSpriteFrame() {
-        try (InputStream stream = getClass().getResourceAsStream(SPRITE_SHEET_PATH)) {
-            if (stream == null) {
+        try (InputStream aliveStream = getClass().getResourceAsStream(SPRITE_SHEET_PATH);
+             InputStream deadStream = getClass().getResourceAsStream("/se233/contra_project/sprites/Bosses1DefenseWallDead.png")) {
+            if (aliveStream == null) {
                 System.err.println("Boss1 sprite sheet not found at " + SPRITE_SHEET_PATH);
                 return;
             }
-            Image sheet = new Image(stream);
-            PixelReader reader = sheet.getPixelReader();
-            if (reader == null) {
-                System.err.println("Boss1 sprite sheet pixel reader was null.");
-                return;
+            Image aliveImage = new Image(aliveStream);
+            int aliveWidth = (int) Math.min(aliveImage.getWidth(), 112);
+            PixelReader aliveReader = aliveImage.getPixelReader();
+            if (aliveReader == null) {
+                throw new IllegalStateException("Boss1 alive image pixel reader null");
             }
-            WritableImage frame = new WritableImage(reader,
-                    SPRITE_FRAME_X,
-                    SPRITE_FRAME_Y,
-                    SPRITE_FRAME_WIDTH,
-                    SPRITE_FRAME_HEIGHT);
+            WritableImage aliveFrame = new WritableImage(aliveReader, 0, 0, aliveWidth, (int) aliveImage.getHeight());
+            WritableImage cleanedAlive = removeBlueBorders(aliveFrame);
+            aliveSprite = new Sprite(cleanedAlive,
+                    aliveFrame.getWidth() * WIDTH_SCALE,
+                    aliveFrame.getHeight() * HEIGHT_SCALE);
+            applySprite(aliveSprite);
 
-            Sprite bossSprite = new Sprite(frame,
-                    SPRITE_FRAME_WIDTH * WIDTH_SCALE,
-                    SPRITE_FRAME_HEIGHT * HEIGHT_SCALE);
-            setSprite(bossSprite);
-            setWidth(BOSS_WIDTH);
-            setHeight(BOSS_HEIGHT);
+            if (deadStream != null) {
+                Image deadImage = new Image(deadStream);
+                PixelReader deadReader = deadImage.getPixelReader();
+                if (deadReader != null) {
+                    WritableImage cleanedDead = removeBlueBorders(new WritableImage(deadReader, 0, 0,
+                            (int) deadImage.getWidth(), (int) deadImage.getHeight()));
+                    deadSprite = new Sprite(cleanedDead,
+                            cleanedDead.getWidth() * WIDTH_SCALE,
+                            cleanedDead.getHeight() * HEIGHT_SCALE);
+                }
+            }
         } catch (Exception e) {
             System.err.println("Failed to load Boss1 sprite: " + e.getMessage());
         }
@@ -170,5 +172,49 @@ public class Boss1 extends Boss {
         }
 
         super.takeDamage(damage);
+
+        if (!isAlive() && deadSprite != null) {
+            applySprite(deadSprite);
+        }
+    }
+
+    private void applySprite(Sprite sprite) {
+        if (sprite == null) {
+            return;
+        }
+
+        setSprite(sprite);
+        setWidth(sprite.getWidth());
+        setHeight(sprite.getHeight());
+        sprite.setPosition(this.position.getX(), this.position.getY());
+    }
+
+    private WritableImage removeBlueBorders(WritableImage image) {
+        PixelReader reader = image.getPixelReader();
+        WritableImage cleaned = new WritableImage((int) image.getWidth(), (int) image.getHeight());
+        javafx.scene.image.PixelWriter writer = cleaned.getPixelWriter();
+
+        for (int y = 0; y < image.getHeight(); y++) {
+            for (int x = 0; x < image.getWidth(); x++) {
+                int argb = reader.getArgb(x, y);
+                int alpha = argb >>> 24;
+                if (alpha == 0) {
+                    writer.setArgb(x, y, 0);
+                    continue;
+                }
+
+                int red = (argb >> 16) & 0xFF;
+                int green = (argb >> 8) & 0xFF;
+                int blue = argb & 0xFF;
+
+                int maxRG = Math.max(red, green);
+                if (blue > maxRG + 40 && blue > 100) {
+                    writer.setArgb(x, y, 0);
+                } else {
+                    writer.setArgb(x, y, argb);
+                }
+            }
+        }
+        return cleaned;
     }
 }

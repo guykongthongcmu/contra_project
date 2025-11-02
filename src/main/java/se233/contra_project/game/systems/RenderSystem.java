@@ -4,6 +4,7 @@ import se233.contra_project.core.Entity;
 import se233.contra_project.core.components.Sprite;
 import se233.contra_project.core.components.SpriteAnimation;
 import se233.contra_project.game.Game;
+import se233.contra_project.bosses.Boss;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -68,10 +69,14 @@ public class RenderSystem {
             // Render enemy projectile as small red rectangle
             graphics.setColor(Color.RED);
             graphics.fillRect((int)x, (int)y, (int)width, (int)height);
-        } else if (entity.getClass().getSimpleName().contains("Boss")) {
-            // Try to render boss sprite based on type
-            String bossImage = getBossImage(entity.getClass().getSimpleName());
-            renderSpriteFromImage(bossImage, x, y, width, height);
+        } else if (entity instanceof Boss) {
+            Sprite bossSprite = ((Boss) entity).getSprite();
+            if (bossSprite != null && bossSprite.getImage() != null) {
+                renderSpriteImage(bossSprite, x, y);
+            } else {
+                String bossImage = getBossImage(entity.getClass().getSimpleName());
+                renderSpriteFromImage(bossImage, x, y, width, height);
+            }
         } else {
             // Default rendering for unknown entities
             graphics.setColor(Color.GREEN);
@@ -167,6 +172,15 @@ public class RenderSystem {
             graphics.setColor(Color.RED);
             graphics.fillRect((int)x, (int)y, (int)width, (int)height);
         }
+    }
+
+    private void renderSpriteImage(Sprite sprite, double x, double y) {
+        if (graphics == null || sprite.getImage() == null) {
+            return;
+        }
+
+        BufferedImage frame = SwingFXUtils.fromFXImage(sprite.getImage(), null);
+        graphics.drawImage(frame, (int) x, (int) y, (int) sprite.getWidth(), (int) sprite.getHeight(), null);
     }
 
     /**

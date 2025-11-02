@@ -58,6 +58,16 @@ public class Stage3Screen extends BaseStageScreen {
         onCustomKeyPressed(code, true);
     }
 
+    @Override
+    protected String getBossProjectileSpritePath() {
+        return "/se233/contra_project/sprites/Boss3bullet.png";
+    }
+
+    @Override
+    protected double getBossProjectileSpriteScale() {
+        return 0.18;
+    }
+
     private void positionBossCenter(Boss boss) {
         double canvasWidth = getCanvasNode().getWidth();
         double canvasHeight = getCanvasNode().getHeight();
