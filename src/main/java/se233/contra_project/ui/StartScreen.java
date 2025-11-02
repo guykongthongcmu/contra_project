@@ -149,7 +149,11 @@ public class StartScreen extends StackPane {
 
     private void startGameAtStage(int stageIndex) {
         if (launcher != null) {
-            launcher.switchToStage(stageIndex);
+            if (stageIndex == 1) {
+                launcher.switchToGameScreen();
+            } else {
+                launcher.switchToStage(stageIndex);
+            }
             System.out.println("Switching to Stage " + stageIndex + "...");
         } else {
             System.out.println("Launcher is null!");

@@ -4,6 +4,7 @@ import se233.contra_project.actors.Player;
 import se233.contra_project.actors.Bullet;
 import se233.contra_project.actors.Projectile;
 import se233.contra_project.bosses.Boss;
+import se233.contra_project.bosses.Boss3;
 import se233.contra_project.core.Entity;
 import se233.contra_project.game.input.InputHandler;
 import se233.contra_project.game.systems.RenderSystem;
@@ -55,10 +56,6 @@ public class Game {
         // Create player
         player = new Player(100, 400); // Start position
         entities.add(player);
-
-        // TODO: Initialize current boss based on level
-        // currentBoss = new Boss1(...);
-        // entities.add(currentBoss);
     }
 
     /**
@@ -148,6 +145,17 @@ public class Game {
             // Add boss projectiles to game
             enemyProjectiles.addAll(currentBoss.getProjectiles());
             currentBoss.getProjectiles().clear();
+        }
+
+        // Check for game over conditions
+        if (currentBoss != null && !currentBoss.isAlive()) {
+            // Boss defeated, trigger victory
+            stop();
+            // TODO: Switch to Game Over Screen with victory
+        } else if (player != null && player.getLives() <= 0) {
+            // Player lost all lives, trigger defeat
+            stop();
+            // TODO: Switch to Game Over Screen with defeat
         }
 
         // TODO: Collision detection will be handled by CollisionSystem

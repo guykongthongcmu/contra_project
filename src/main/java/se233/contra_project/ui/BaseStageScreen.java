@@ -1,6 +1,9 @@
 package se233.contra_project.ui;
 
 import javafx.animation.AnimationTimer;
+import javafx.application.Platform;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.geometry.Pos;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
@@ -10,6 +13,9 @@ import javafx.scene.image.WritableImage;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
+import javafx.scene.Scene;
+import javafx.stage.Window;
+import se233.contra_project.Launcher;
 import se233.contra_project.actors.Bullet;
 import se233.contra_project.actors.Player;
 import se233.contra_project.actors.Projectile;
@@ -65,6 +71,13 @@ public abstract class BaseStageScreen extends StackPane {
     private boolean exitTriggered = false;
     private boolean showControlsOverlay = false;
     private GameSession session;
+    private boolean gameOverTriggered = false;
+    private Launcher hostLauncher;
+    private AnimationTimer gameLoop;
+    private boolean gameLoopRunning = false;
+    private final ChangeListener<Window> windowChangeListener = this::handleWindowChanged;
+    private final ChangeListener<Boolean> windowShowingListener = this::handleWindowShowingChanged;
+    private final ChangeListener<Scene> sceneChangeListener = this::handleSceneChanged;
 
     private static final int PLAYER_FRAME_PADDING = 2;
     private static final FrameRect[] PLAYER_IDLE_FRAMES = {
@@ -202,6 +215,7 @@ public abstract class BaseStageScreen extends StackPane {
         bossProjectiles.clear();
         bossDefeatedNotified = false;
         exitTriggered = false;
+        gameOverTriggered = false;
         onBossCreated(boss);
     }
 
@@ -225,6 +239,10 @@ public abstract class BaseStageScreen extends StackPane {
     public void bindSession(GameSession session) {
         this.session = (session != null) ? session : SHARED_SESSION;
         syncSessionScore();
+    }
+
+    public void setLauncher(Launcher launcher) {
+        this.hostLauncher = launcher;
     }
 
     public void syncSessionScore() {
@@ -579,17 +597,22 @@ public abstract class BaseStageScreen extends StackPane {
         }
 
         player.loseLife();
-        System.out.println("Player hit! Lives remaining: " + player.getLives());
+        int remainingLives = Math.max(0, player.getLives());
+        System.out.println("Player hit! Lives remaining: " + remainingLives);
         refreshHud();
 
-        if (player.isAlive()) {
+        if (remainingLives > 0) {
             positionPlayer(player);
         } else {
             System.out.println("Player defeated!");
+            onPlayerDefeated();
         }
     }
 
     private void checkStageProgression() {
+        if (gameOverTriggered) {
+            return;
+        }
         if (!bossDefeatedNotified && boss != null && !boss.isAlive()) {
             bossDefeatedNotified = true;
             onBossDefeated();
@@ -706,11 +729,12 @@ public abstract class BaseStageScreen extends StackPane {
         bossProjectiles.clear();
         bossDefeatedNotified = false;
         exitTriggered = false;
+        gameOverTriggered = false;
         syncSessionScore();
     }
 
     private void startAnimationTimer() {
-        AnimationTimer timer = new AnimationTimer() {
+        gameLoop = new AnimationTimer() {
             private long lastTime = 0;
 
             @Override
@@ -747,7 +771,8 @@ public abstract class BaseStageScreen extends StackPane {
                 draw();
             }
         };
-        timer.start();
+        sceneProperty().addListener(sceneChangeListener);
+        handleSceneChanged(null, null, getScene());
     }
 
     private void draw() {
@@ -942,6 +967,68 @@ public abstract class BaseStageScreen extends StackPane {
         return session != null ? session : SHARED_SESSION;
     }
 
+    private void startGameLoop() {
+        if (gameLoop != null && !gameLoopRunning) {
+            gameLoop.start();
+            gameLoopRunning = true;
+        }
+    }
+
+    private void stopGameLoop() {
+        if (gameLoop != null && gameLoopRunning) {
+            gameLoop.stop();
+            gameLoopRunning = false;
+        }
+    }
+
+    private void handleSceneChanged(ObservableValue<? extends Scene> observable, Scene oldScene, Scene newScene) {
+        if (oldScene != null) {
+            oldScene.windowProperty().removeListener(windowChangeListener);
+            Window oldWindow = oldScene.getWindow();
+            if (oldWindow != null) {
+                oldWindow.showingProperty().removeListener(windowShowingListener);
+            }
+        }
+
+        if (newScene != null) {
+            newScene.windowProperty().addListener(windowChangeListener);
+            Window newWindow = newScene.getWindow();
+            if (newWindow != null) {
+                newWindow.showingProperty().addListener(windowShowingListener);
+                if (newWindow.isShowing()) {
+                    startGameLoop();
+                }
+            } else {
+                stopGameLoop();
+            }
+        } else {
+            stopGameLoop();
+        }
+    }
+
+    private void handleWindowChanged(ObservableValue<? extends Window> observable, Window oldWindow, Window newWindow) {
+        if (oldWindow != null) {
+            oldWindow.showingProperty().removeListener(windowShowingListener);
+        }
+
+        if (newWindow != null) {
+            newWindow.showingProperty().addListener(windowShowingListener);
+            if (newWindow.isShowing()) {
+                startGameLoop();
+            }
+        } else {
+            stopGameLoop();
+        }
+    }
+
+    private void handleWindowShowingChanged(ObservableValue<? extends Boolean> observable, Boolean wasShowing, Boolean isShowing) {
+        if (Boolean.TRUE.equals(isShowing)) {
+            startGameLoop();
+        } else {
+            stopGameLoop();
+        }
+    }
+
     private void drawControlsHelp() {
         gc.setFill(Color.color(0, 0, 0, 0.7));
         gc.fillRect(10, CANVAS_HEIGHT - 150, 360, 140);
@@ -1043,6 +1130,10 @@ public abstract class BaseStageScreen extends StackPane {
         // Optional hook for subclasses
     }
 
+    protected void onPlayerDefeated() {
+        triggerGameOver(false);
+    }
+
     // Backwards-compatible hook; subclasses can override if needed
     protected void handleCustomKey(KeyCode code) {
         onCustomKeyPressed(code, true);
@@ -1086,6 +1177,48 @@ public abstract class BaseStageScreen extends StackPane {
 
     protected double getPlayerSpriteScale() {
         return 1.15;
+    }
+
+    protected final void triggerGameOver(boolean victory) {
+        if (gameOverTriggered) {
+            return;
+        }
+        gameOverTriggered = true;
+        activeKeys.clear();
+        stopGameLoop();
+
+        Launcher launcher = resolveLauncher();
+        if (launcher == null) {
+            launcher = hostLauncher;
+        }
+
+        if (launcher == null) {
+            LOGGER.warning("Unable to resolve launcher; cannot switch to Game Over screen.");
+            return;
+        }
+
+        int finalScore = getActiveSession().getScore();
+        if (Platform.isFxApplicationThread()) {
+            launcher.switchToGameOver(finalScore, victory);
+        } else {
+            Launcher finalLauncher = launcher;
+            Platform.runLater(() -> finalLauncher.switchToGameOver(finalScore, victory));
+        }
+    }
+
+    private Launcher resolveLauncher() {
+        if (getScene() == null) {
+            return null;
+        }
+        Window window = getScene().getWindow();
+        if (window == null) {
+            return null;
+        }
+        Object userData = window.getUserData();
+        if (userData instanceof Launcher) {
+            return (Launcher) userData;
+        }
+        return null;
     }
 
     protected String getBulletSpritePath() {
