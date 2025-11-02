@@ -5,6 +5,7 @@ import se233.contra_project.ui.Stage1Screen;
 import se233.contra_project.ui.Stage2Screen;
 import se233.contra_project.ui.Stage3Screen;
 import se233.contra_project.ui.BossDemoScreen;
+import se233.contra_project.logging.LogConfig;
 
 import javafx.application.Application;
 import javafx.scene.Scene;
@@ -78,6 +79,7 @@ public class Launcher extends Application {
     }
 
     public static void main(String[] args) {
+        LogConfig.configure();
         launch(args);
     }
 }

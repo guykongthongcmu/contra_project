@@ -1,6 +1,8 @@
 package se233.contra_project.ui;
 
 import javafx.animation.AnimationTimer;
+import javafx.embed.swing.SwingNode;
+import javafx.geometry.Pos;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
@@ -16,6 +18,7 @@ import se233.contra_project.bosses.Boss;
 import se233.contra_project.core.components.Sprite;
 import se233.contra_project.core.components.SpriteAnimation;
 
+import javax.swing.SwingUtilities;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -23,12 +26,16 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.logging.Logger;
+
+import se233.contra_project.logging.LogConfig;
 
 /**
  * Shared behaviour for individual stage screens.
  * Handles canvas setup, background rendering, boss lifecycle, and HUD overlays.
  */
 public abstract class BaseStageScreen extends StackPane {
+    private static final Logger LOGGER = LogConfig.getLogger(BaseStageScreen.class);
     private static final int CANVAS_WIDTH = 800;
     private static final int CANVAS_HEIGHT = 600;
 
@@ -48,6 +55,11 @@ public abstract class BaseStageScreen extends StackPane {
     private Image bulletImpactFrame;
     private Image bossProjectileImage;
     private final List<Image> bossProjectileFrames = new ArrayList<>();
+    private final SwingNode hudNode;
+    private final HUDOverlay hudOverlay;
+    private int playerScore = 0;
+    private int lastHudLives = -1;
+    private int lastHudScore = -1;
 
     private boolean bossDefeatedNotified = false;
     private boolean exitTriggered = false;
@@ -84,7 +96,15 @@ public abstract class BaseStageScreen extends StackPane {
     protected BaseStageScreen() {
         canvas = new Canvas(CANVAS_WIDTH, CANVAS_HEIGHT);
         gc = canvas.getGraphicsContext2D();
+        hudOverlay = new HUDOverlay();
+        hudNode = new SwingNode();
+        hudNode.setMouseTransparent(true);
+        hudNode.setFocusTraversable(false);
+        hudNode.setContent(hudOverlay);
+        StackPane.setAlignment(hudNode, Pos.TOP_LEFT);
+
         getChildren().add(canvas);
+        getChildren().add(hudNode);
 
         loadBackground();
         loadBulletSprite();
@@ -195,6 +215,7 @@ public abstract class BaseStageScreen extends StackPane {
         configurePlayerSprite(player);
         positionPlayer(player);
         onPlayerCreated(player);
+        refreshHud();
     }
 
     private void initializeHealthBar() {
@@ -313,6 +334,33 @@ public abstract class BaseStageScreen extends StackPane {
         double scale = getBulletImpactSpriteScale();
         double duration = getBulletImpactDuration();
         bullet.triggerImpact(bulletImpactFrame, scale, duration);
+    }
+
+    private void refreshHud() {
+        if (hudOverlay == null) {
+            return;
+        }
+        final int lives = player != null ? Math.max(0, player.getLives()) : 0;
+        final int scoreSnapshot = playerScore;
+        if (lives == lastHudLives && scoreSnapshot == lastHudScore) {
+            return;
+        }
+        lastHudLives = lives;
+        lastHudScore = scoreSnapshot;
+        SwingUtilities.invokeLater(() -> hudOverlay.updateHUD(lives, scoreSnapshot));
+    }
+
+    protected void addScore(int points) {
+        if (points <= 0) {
+            LOGGER.fine(() -> String.format("Ignoring non-positive score increment: %d", points));
+            return;
+        }
+        playerScore += points;
+        LOGGER.info(() -> String.format(
+                "Score increased by %d | total=%d",
+                points, playerScore
+        ));
+        refreshHud();
     }
 
     private List<Image> extractBossProjectileFrames(Image sheet) {
@@ -517,6 +565,7 @@ public abstract class BaseStageScreen extends StackPane {
 
         player.loseLife();
         System.out.println("Player hit! Lives remaining: " + player.getLives());
+        refreshHud();
 
         if (player.isAlive()) {
             positionPlayer(player);
@@ -639,6 +688,7 @@ public abstract class BaseStageScreen extends StackPane {
         bossProjectiles.clear();
         bossDefeatedNotified = false;
         exitTriggered = false;
+        refreshHud();
     }
 
     private void startAnimationTimer() {
@@ -674,6 +724,7 @@ public abstract class BaseStageScreen extends StackPane {
                 }
 
                 checkStageProgression();
+                refreshHud();
 
                 draw();
             }
@@ -904,6 +955,9 @@ public abstract class BaseStageScreen extends StackPane {
             return;
         }
         boss.takeDamage(damage);
+        if (!boss.isAlive()) {
+            addScore(boss.getScoreValue());
+        }
         if (healthBar != null) {
             healthBar.triggerDamageFlash();
         }
