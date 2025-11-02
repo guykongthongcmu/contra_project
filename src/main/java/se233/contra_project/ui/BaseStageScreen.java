@@ -10,17 +10,15 @@ import javafx.scene.image.WritableImage;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
-import javafx.stage.Window;
-import se233.contra_project.Launcher;
 import se233.contra_project.actors.Bullet;
 import se233.contra_project.actors.Player;
 import se233.contra_project.actors.Projectile;
 import se233.contra_project.bosses.Boss;
 import se233.contra_project.core.components.Sprite;
 import se233.contra_project.core.components.SpriteAnimation;
+import se233.contra_project.game.GameSession;
 
 import java.io.InputStream;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.Iterator;
@@ -61,9 +59,12 @@ public abstract class BaseStageScreen extends StackPane {
     private int lastHudLives = -1;
     private int lastHudScore = -1;
 
+    private static final GameSession SHARED_SESSION = new GameSession();
+
     private boolean bossDefeatedNotified = false;
     private boolean exitTriggered = false;
-    private boolean gameOverTriggered = false;
+    private boolean showControlsOverlay = false;
+    private GameSession session;
 
     private static final int PLAYER_FRAME_PADDING = 2;
     private static final FrameRect[] PLAYER_IDLE_FRAMES = {
@@ -201,7 +202,6 @@ public abstract class BaseStageScreen extends StackPane {
         bossProjectiles.clear();
         bossDefeatedNotified = false;
         exitTriggered = false;
-        gameOverTriggered = false;
         onBossCreated(boss);
     }
 
@@ -220,6 +220,18 @@ public abstract class BaseStageScreen extends StackPane {
 
     private void initializeHealthBar() {
         healthBar = new BossHealthBar(canvas, boss);
+    }
+
+    public void bindSession(GameSession session) {
+        this.session = (session != null) ? session : SHARED_SESSION;
+        syncSessionScore();
+    }
+
+    public void syncSessionScore() {
+        GameSession activeSession = getActiveSession();
+        playerScore = activeSession.getScore();
+        lastHudScore = -1;
+        refreshHud();
     }
 
     private void configurePlayerSprite(Player player) {
@@ -341,7 +353,8 @@ public abstract class BaseStageScreen extends StackPane {
             return;
         }
         final int lives = player != null ? Math.max(0, player.getLives()) : 0;
-        final int scoreSnapshot = playerScore;
+        final int scoreSnapshot = getActiveSession().getScore();
+        playerScore = scoreSnapshot;
         if (lives == lastHudLives && scoreSnapshot == lastHudScore) {
             return;
         }
@@ -355,10 +368,12 @@ public abstract class BaseStageScreen extends StackPane {
             LOGGER.fine(() -> String.format("Ignoring non-positive score increment: %d", points));
             return;
         }
-        playerScore += points;
+        GameSession activeSession = getActiveSession();
+        int updatedScore = activeSession.addScore(points);
+        playerScore = updatedScore;
         LOGGER.info(() -> String.format(
                 "Score increased by %d | total=%d",
-                points, playerScore
+                points, updatedScore
         ));
         refreshHud();
     }
@@ -571,7 +586,6 @@ public abstract class BaseStageScreen extends StackPane {
             positionPlayer(player);
         } else {
             System.out.println("Player defeated!");
-            onPlayerDefeated();
         }
     }
 
@@ -644,6 +658,9 @@ public abstract class BaseStageScreen extends StackPane {
                     case I:
                         showInfo = !showInfo;
                         break;
+                    case F1:
+                        showControlsOverlay = !showControlsOverlay;
+                        break;
                     case R:
                         resetBoss();
                         break;
@@ -689,9 +706,7 @@ public abstract class BaseStageScreen extends StackPane {
         bossProjectiles.clear();
         bossDefeatedNotified = false;
         exitTriggered = false;
-        gameOverTriggered = false;
-        playerScore = 0;
-        refreshHud();
+        syncSessionScore();
     }
 
     private void startAnimationTimer() {
@@ -747,7 +762,9 @@ public abstract class BaseStageScreen extends StackPane {
         if (showInfo) {
             drawInfoPanel();
         }
-        drawControlsHelp();
+        if (showControlsOverlay) {
+            drawControlsHelp();
+        }
     }
 
     private void drawBackgroundLayer() {
@@ -921,6 +938,10 @@ public abstract class BaseStageScreen extends StackPane {
         }
     }
 
+    private GameSession getActiveSession() {
+        return session != null ? session : SHARED_SESSION;
+    }
+
     private void drawControlsHelp() {
         gc.setFill(Color.color(0, 0, 0, 0.7));
         gc.fillRect(10, CANVAS_HEIGHT - 150, 360, 140);
@@ -1022,10 +1043,6 @@ public abstract class BaseStageScreen extends StackPane {
         // Optional hook for subclasses
     }
 
-    protected void onPlayerDefeated() {
-        triggerGameOver(false);
-    }
-
     // Backwards-compatible hook; subclasses can override if needed
     protected void handleCustomKey(KeyCode code) {
         onCustomKeyPressed(code, true);
@@ -1069,47 +1086,6 @@ public abstract class BaseStageScreen extends StackPane {
 
     protected double getPlayerSpriteScale() {
         return 1.15;
-    }
-
-    protected final void triggerGameOver(boolean victory) {
-        if (gameOverTriggered) {
-            return;
-        }
-        gameOverTriggered = true;
-
-        Launcher launcher = resolveLauncher();
-        if (launcher != null) {
-            if (!invokeLauncherGameOver(launcher, playerScore, victory)) {
-                System.err.println("Launcher did not expose switchToGameOver; cannot display Game Over screen.");
-            }
-        } else {
-            System.err.println("Unable to resolve launcher; cannot display Game Over screen.");
-        }
-    }
-
-    private Launcher resolveLauncher() {
-        Window window = null;
-        if (getScene() != null) {
-            window = getScene().getWindow();
-        }
-        if (window == null) {
-            return null;
-        }
-        Object userData = window.getUserData();
-        if (userData instanceof Launcher) {
-            return (Launcher) userData;
-        }
-        return null;
-    }
-
-    private boolean invokeLauncherGameOver(Launcher launcher, int score, boolean victory) {
-        try {
-            Method method = launcher.getClass().getMethod("switchToGameOver", int.class, boolean.class);
-            method.invoke(launcher, score, victory);
-            return true;
-        } catch (ReflectiveOperationException e) {
-            return false;
-        }
     }
 
     protected String getBulletSpritePath() {

@@ -1,11 +1,11 @@
 package se233.contra_project;
 
 import javafx.application.Application;
-import javafx.application.Platform;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import se233.contra_project.game.GameSession;
 import se233.contra_project.logging.LogConfig;
-import se233.contra_project.ui.GameOverScreen;
+import se233.contra_project.ui.BaseStageScreen;
 import se233.contra_project.ui.Stage1Screen;
 import se233.contra_project.ui.Stage2Screen;
 import se233.contra_project.ui.Stage3Screen;
@@ -18,13 +18,11 @@ public class Launcher extends Application {
 
     private Stage primaryStage;
     private StartScreen startScreen;
-    private GameOverScreen gameOverScreen;
-
     private Scene startScene;
     private Scene stage1Scene;
     private Scene stage2Scene;
     private Scene stage3Scene;
-    private Scene gameOverScene;
+    private GameSession gameSession;
 
     @Override
     public void start(Stage primaryStage) {
@@ -32,12 +30,23 @@ public class Launcher extends Application {
         primaryStage.setTitle("Contra - Boss Demo");
         primaryStage.setResizable(false);
 
+        gameSession = new GameSession();
+
         startScreen = new StartScreen();
         startScreen.setLauncher(this);
         startScene = new Scene(startScreen, WINDOW_WIDTH, WINDOW_HEIGHT);
 
-        createStageScenes();
-        createGameOverScene();
+        Stage1Screen stage1Screen = new Stage1Screen(() -> switchToStage(2));
+        stage1Screen.bindSession(gameSession);
+        stage1Scene = new Scene(stage1Screen, WINDOW_WIDTH, WINDOW_HEIGHT);
+
+        Stage2Screen stage2Screen = new Stage2Screen(() -> switchToStage(3));
+        stage2Screen.bindSession(gameSession);
+        stage2Scene = new Scene(stage2Screen, WINDOW_WIDTH, WINDOW_HEIGHT);
+
+        Stage3Screen stage3Screen = new Stage3Screen();
+        stage3Screen.bindSession(gameSession);
+        stage3Scene = new Scene(stage3Screen, WINDOW_WIDTH, WINDOW_HEIGHT);
 
         primaryStage.setUserData(this);
         primaryStage.setScene(startScene);
@@ -46,6 +55,7 @@ public class Launcher extends Application {
     }
 
     public void switchToGameScreen() {
+        gameSession.reset();
         switchToStage(1);
     }
 
@@ -64,63 +74,15 @@ public class Launcher extends Application {
                 break;
         }
 
+        if (sceneToShow != null && sceneToShow.getRoot() instanceof BaseStageScreen stageScreen) {
+            stageScreen.syncSessionScore();
+        }
+
         primaryStage.setScene(sceneToShow);
         if (sceneToShow.getRoot() != null) {
             sceneToShow.getRoot().requestFocus();
         }
         primaryStage.show();
-    }
-
-    public void switchToStartScreen() {
-        Runnable action = () -> {
-            createStageScenes();
-            primaryStage.setScene(startScene);
-            primaryStage.show();
-            if (startScene.getRoot() != null) {
-                startScene.getRoot().requestFocus();
-            }
-        };
-
-        if (Platform.isFxApplicationThread()) {
-            action.run();
-        } else {
-            Platform.runLater(action);
-        }
-    }
-
-    public void switchToGameOver(int score, boolean victory) {
-        Runnable action = () -> {
-            if (gameOverScreen == null) {
-                createGameOverScene();
-            }
-            gameOverScreen.showResult(score, victory);
-            primaryStage.setScene(gameOverScene);
-            primaryStage.show();
-            gameOverScreen.requestFocus();
-        };
-
-        if (Platform.isFxApplicationThread()) {
-            action.run();
-        } else {
-            Platform.runLater(action);
-        }
-    }
-
-    private void createStageScenes() {
-        Stage1Screen stage1Screen = new Stage1Screen(() -> switchToStage(2));
-        stage1Scene = new Scene(stage1Screen, WINDOW_WIDTH, WINDOW_HEIGHT);
-
-        Stage2Screen stage2Screen = new Stage2Screen(() -> switchToStage(3));
-        stage2Scene = new Scene(stage2Screen, WINDOW_WIDTH, WINDOW_HEIGHT);
-
-        Stage3Screen stage3Screen = new Stage3Screen();
-        stage3Scene = new Scene(stage3Screen, WINDOW_WIDTH, WINDOW_HEIGHT);
-    }
-
-    private void createGameOverScene() {
-        gameOverScreen = new GameOverScreen();
-        gameOverScreen.setOnRestart(this::switchToStartScreen);
-        gameOverScene = new Scene(gameOverScreen, WINDOW_WIDTH, WINDOW_HEIGHT);
     }
 
     public static void main(String[] args) {
