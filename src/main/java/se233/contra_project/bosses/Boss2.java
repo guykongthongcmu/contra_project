@@ -5,6 +5,7 @@ import javafx.scene.image.PixelReader;
 import javafx.scene.image.WritableImage;
 import se233.contra_project.actors.Projectile;
 import se233.contra_project.core.components.Sprite;
+import se233.contra_project.core.exceptions.GameExceptions;
 
 /**
  * Boss2 - Java
@@ -162,20 +163,15 @@ public class Boss2 extends Boss {
     }
 
     private void loadSprites() {
-        try {
-            idleSprite = loadSpriteResource("/se233/contra_project/sprites/Bosses2Java.png", 112);
-            attackSprite = loadSpriteResource("/se233/contra_project/sprites/Bosses2JavaAttack.png", 0);
-            deadSprite = loadSpriteResource("/se233/contra_project/sprites/Bosses2JavaDead.png", 0);
-        } catch (Exception e) {
-            System.err.println("Failed to load Boss2 sprites: " + e.getMessage());
-        }
+        idleSprite = loadSpriteResource("/se233/contra_project/sprites/Bosses2Java.png", 112);
+        attackSprite = loadSpriteResource("/se233/contra_project/sprites/Bosses2JavaAttack.png", 0);
+        deadSprite = loadSpriteResource("/se233/contra_project/sprites/Bosses2JavaDead.png", 0);
     }
 
     private Sprite loadSpriteResource(String path, int cropWidth) {
         try (java.io.InputStream stream = getClass().getResourceAsStream(path)) {
             if (stream == null) {
-                System.err.println("Sprite resource not found at " + path);
-                return null;
+                throw GameExceptions.failure("Sprite resource not found at " + path);
             }
             Image image = new Image(stream);
             if (cropWidth > 0 && image.getWidth() > cropWidth) {
@@ -187,8 +183,7 @@ public class Boss2 extends Boss {
             }
             return new Sprite(image, image.getWidth(), image.getHeight());
         } catch (Exception e) {
-            System.err.println("Failed to load sprite from " + path + ": " + e.getMessage());
-            return null;
+            throw GameExceptions.failure("Failed to load Boss2 sprite from " + path, e);
         }
     }
 

@@ -6,6 +6,7 @@ import javafx.scene.image.WritableImage;
 import java.io.InputStream;
 import se233.contra_project.actors.Projectile;
 import se233.contra_project.core.components.Sprite;
+import se233.contra_project.core.exceptions.GameExceptions;
 
 /**
  * Boss1 - Defense Wall
@@ -45,14 +46,13 @@ public class Boss1 extends Boss {
         try (InputStream aliveStream = getClass().getResourceAsStream(SPRITE_SHEET_PATH);
              InputStream deadStream = getClass().getResourceAsStream("/se233/contra_project/sprites/Bosses1DefenseWallDead.png")) {
             if (aliveStream == null) {
-                System.err.println("Boss1 sprite sheet not found at " + SPRITE_SHEET_PATH);
-                return;
+                throw GameExceptions.failure("Boss1 sprite sheet not found at " + SPRITE_SHEET_PATH);
             }
             Image aliveImage = new Image(aliveStream);
             int aliveWidth = (int) Math.min(aliveImage.getWidth(), 112);
             PixelReader aliveReader = aliveImage.getPixelReader();
             if (aliveReader == null) {
-                throw new IllegalStateException("Boss1 alive image pixel reader null");
+                throw GameExceptions.failure("Boss1 alive image pixel reader null for " + SPRITE_SHEET_PATH);
             }
             WritableImage aliveFrame = new WritableImage(aliveReader, 0, 0, aliveWidth, (int) aliveImage.getHeight());
             WritableImage cleanedAlive = removeBlueBorders(aliveFrame);
@@ -73,7 +73,7 @@ public class Boss1 extends Boss {
                 }
             }
         } catch (Exception e) {
-            System.err.println("Failed to load Boss1 sprite: " + e.getMessage());
+            throw GameExceptions.failure("Failed to load Boss1 sprites", e);
         }
     }
 

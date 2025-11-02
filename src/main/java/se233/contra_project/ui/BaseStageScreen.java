@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
+import se233.contra_project.core.exceptions.GameExceptions;
 import se233.contra_project.logging.GameLogger;
 
 /**
@@ -130,37 +131,31 @@ public abstract class BaseStageScreen extends StackPane {
     }
 
     private void loadBackground() {
-        try {
-            String path = getBackgroundResourcePath();
-            if (path != null) {
-                try (InputStream stream = getClass().getResourceAsStream(path)) {
-                    if (stream != null) {
-                        backgroundImage = new Image(stream);
-                    } else {
-                        backgroundImage = null;
-                        System.err.println("Background resource not found at " + path);
-                    }
-                }
-            } else {
-                backgroundImage = null;
-            }
-        } catch (Exception e) {
-            System.err.println("Failed to load stage background: " + e.getMessage());
+        String path = getBackgroundResourcePath();
+        if (path == null) {
             backgroundImage = null;
+            return;
+        }
+
+        try (InputStream stream = getClass().getResourceAsStream(path)) {
+            if (stream == null) {
+                throw GameExceptions.failure("Background resource not found at " + path);
+            }
+            backgroundImage = new Image(stream);
+        } catch (Exception e) {
+            throw GameExceptions.failure("Failed to load stage background: " + path, e);
         }
     }
 
     private void loadBulletSprite() {
-        try (InputStream stream = getClass().getResourceAsStream(getBulletSpritePath())) {
-            if (stream != null) {
-                bulletImage = new Image(stream);
-            } else {
-                System.err.println("Bullet sprite not found at " + getBulletSpritePath());
-                bulletImage = null;
+        String spritePath = getBulletSpritePath();
+        try (InputStream stream = getClass().getResourceAsStream(spritePath)) {
+            if (stream == null) {
+                throw GameExceptions.failure("Bullet sprite not found at " + spritePath);
             }
+            bulletImage = new Image(stream);
         } catch (Exception e) {
-            System.err.println("Failed to load bullet sprite: " + e.getMessage());
-            bulletImage = null;
+            throw GameExceptions.failure("Failed to load bullet sprite: " + spritePath, e);
         }
     }
 
@@ -176,32 +171,30 @@ public abstract class BaseStageScreen extends StackPane {
                 Image sheet = new Image(stream);
                 bulletImpactFrame = extractBulletImpactFrame(sheet);
                 if (bulletImpactFrame == null) {
-                    System.err.println("Failed to extract bullet impact frame from sheet at " + path);
+                    throw GameExceptions.failure("Failed to extract bullet impact frame from sheet at " + path);
                 }
             } else {
-                System.err.println("Bullet impact sprite not found at " + path);
+                throw GameExceptions.failure("Bullet impact sprite not found at " + path);
             }
         } catch (Exception e) {
-            System.err.println("Failed to load bullet impact sprite: " + e.getMessage());
+            throw GameExceptions.failure("Failed to load bullet impact sprite: " + path, e);
         }
     }
 
     private void loadBossProjectileSprite() {
         bossProjectileFrames.clear();
-        try (InputStream stream = getClass().getResourceAsStream(getBossProjectileSpritePath())) {
-            if (stream != null) {
-                bossProjectileImage = new Image(stream);
-                bossProjectileFrames.addAll(extractBossProjectileFrames(bossProjectileImage));
-                if (bossProjectileFrames.isEmpty() && bossProjectileImage != null) {
-                    bossProjectileFrames.add(bossProjectileImage);
-                }
-            } else {
-                System.err.println("Boss projectile sprite not found at " + getBossProjectileSpritePath());
-                bossProjectileImage = null;
+        String path = getBossProjectileSpritePath();
+        try (InputStream stream = getClass().getResourceAsStream(path)) {
+            if (stream == null) {
+                throw GameExceptions.failure("Boss projectile sprite not found at " + path);
+            }
+            bossProjectileImage = new Image(stream);
+            bossProjectileFrames.addAll(extractBossProjectileFrames(bossProjectileImage));
+            if (bossProjectileFrames.isEmpty() && bossProjectileImage != null) {
+                bossProjectileFrames.add(bossProjectileImage);
             }
         } catch (Exception e) {
-            System.err.println("Failed to load boss projectile sprite: " + e.getMessage());
-            bossProjectileImage = null;
+            throw GameExceptions.failure("Failed to load boss projectile sprite: " + path, e);
         }
     }
 
@@ -251,17 +244,16 @@ public abstract class BaseStageScreen extends StackPane {
     }
 
     private void configurePlayerSprite(Player player) {
-        try (InputStream stream = getClass().getResourceAsStream(getPlayerSpriteSheetPath())) {
+        String sheetPath = getPlayerSpriteSheetPath();
+        try (InputStream stream = getClass().getResourceAsStream(sheetPath)) {
             if (stream == null) {
-                System.err.println("Player sprite sheet not found at " + getPlayerSpriteSheetPath());
-                return;
+                throw GameExceptions.failure("Player sprite sheet not found at " + sheetPath);
             }
 
             Image sheet = new Image(stream);
             PixelReader reader = sheet.getPixelReader();
             if (reader == null) {
-                System.err.println("Player sprite sheet pixel reader was null.");
-                return;
+                throw GameExceptions.failure("Player sprite sheet pixel reader was null for " + sheetPath);
             }
 
             Image[] idleFrames = extractFrames(sheet, PLAYER_IDLE_FRAMES);
@@ -292,7 +284,7 @@ public abstract class BaseStageScreen extends StackPane {
                 player.startIdleAnimation();
             }
         } catch (Exception e) {
-            System.err.println("Failed to configure player sprite: " + e.getMessage());
+            throw GameExceptions.failure("Failed to configure player sprite using sheet " + sheetPath, e);
         }
     }
 

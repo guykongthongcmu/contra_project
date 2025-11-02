@@ -3,6 +3,7 @@ package se233.contra_project;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import se233.contra_project.core.exceptions.GameException;
 import se233.contra_project.game.GameSession;
 import se233.contra_project.ui.BaseStageScreen;
 import se233.contra_project.ui.GameOverScreen;
@@ -31,6 +32,18 @@ public class Launcher extends Application {
         this.primaryStage = primaryStage;
         primaryStage.setTitle("Contra - Boss Demo");
         primaryStage.setResizable(false);
+
+        Thread.setDefaultUncaughtExceptionHandler((thread, throwable) -> {
+            Throwable cause = throwable instanceof GameException ? throwable : throwable.getCause();
+            if (cause instanceof GameException) {
+                System.err.println("[GameFailure] " + cause.getMessage());
+                if (cause.getCause() != null) {
+                    cause.getCause().printStackTrace(System.err);
+                }
+            } else {
+                throwable.printStackTrace(System.err);
+            }
+        });
 
         gameSession = new GameSession();
 

@@ -6,6 +6,7 @@ import javafx.scene.image.PixelWriter;
 import javafx.scene.image.WritableImage;
 import se233.contra_project.actors.Projectile;
 import se233.contra_project.core.components.Sprite;
+import se233.contra_project.core.exceptions.GameExceptions;
 
 /**
  * Boss3 - Code Dragon
@@ -197,8 +198,7 @@ public class Boss3 extends Boss {
     private void loadSprites() {
         try (java.io.InputStream stream = getClass().getResourceAsStream(SPRITE_SHEET_PATH)) {
             if (stream == null) {
-                System.err.println("Boss3 sprite sheet not found: " + SPRITE_SHEET_PATH);
-                return;
+                throw GameExceptions.failure("Boss3 sprite sheet not found: " + SPRITE_SHEET_PATH);
             }
 
             Image sheet = new Image(stream);
@@ -206,7 +206,7 @@ public class Boss3 extends Boss {
             attackSprite = createFrameSprite(sheet, 2, 1, true);
 
             if (idleSprite == null && attackSprite == null) {
-                System.err.println("Failed to load Boss3 sprites from sheet.");
+                throw GameExceptions.failure("Failed to load Boss3 sprites from sheet " + SPRITE_SHEET_PATH);
             } else {
                 if (idleSprite == null) {
                     idleSprite = attackSprite;
@@ -216,14 +216,14 @@ public class Boss3 extends Boss {
                 }
             }
         } catch (Exception e) {
-            System.err.println("Failed to load Boss3 sprite from " + SPRITE_SHEET_PATH + ": " + e.getMessage());
+            throw GameExceptions.failure("Failed to load Boss3 sprite from " + SPRITE_SHEET_PATH, e);
         }
     }
 
     private Sprite createFrameSprite(Image sheet, int column, int row, boolean flipHorizontal) {
         PixelReader reader = sheet.getPixelReader();
         if (reader == null) {
-            return null;
+            throw GameExceptions.failure("Boss3 sprite sheet pixel reader was null for " + SPRITE_SHEET_PATH);
         }
 
         int frameX = column * RAW_FRAME_WIDTH;
@@ -232,8 +232,7 @@ public class Boss3 extends Boss {
         int sheetHeight = (int) Math.round(sheet.getHeight());
 
         if (frameX + RAW_FRAME_WIDTH > sheetWidth || frameY + RAW_FRAME_HEIGHT > sheetHeight) {
-            System.err.println("Requested Boss3 frame (" + column + ", " + row + ") is outside of sprite sheet bounds.");
-            return null;
+            throw GameExceptions.failure("Requested Boss3 frame (" + column + ", " + row + ") is outside of sprite sheet bounds for " + SPRITE_SHEET_PATH);
         }
 
         WritableImage frame = new WritableImage(reader, frameX, frameY, RAW_FRAME_WIDTH, RAW_FRAME_HEIGHT);

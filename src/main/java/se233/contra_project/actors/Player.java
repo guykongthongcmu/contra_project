@@ -242,11 +242,6 @@ public class Player extends Entity {
                 hitboxInitialized = true;
             }
 
-            double targetWidth = prone ? proneWidth : standingWidth;
-            double targetHeight = prone ? proneHeight : standingHeight;
-
-            this.width = targetWidth;
-            this.height = targetHeight;
             applyHitboxForState(prone);
         }
     }
@@ -355,13 +350,19 @@ public class Player extends Entity {
         double targetWidth = toProne ? proneWidth : standingWidth;
         double targetHeight = toProne ? proneHeight : standingHeight;
         double bottom = this.position.getY() + this.height;
+
+        // Update hitbox dimensions
         this.width = targetWidth;
         this.height = targetHeight;
+
+        // Preserve feet on ground
         double newY = bottom - targetHeight;
         this.setPosition(this.position.getX(), newY);
         if (sprite != null) {
             sprite.setPosition(this.position.getX(), newY);
         }
+        // Update ground level so physics continues to treat this as the floor contact point
+        this.groundLevel = newY;
     }
 
     private void updateAnimations() {
