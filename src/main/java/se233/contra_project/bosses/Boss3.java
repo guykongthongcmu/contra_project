@@ -100,8 +100,8 @@ public class Boss3 extends Boss {
         for (int i = 0; i < numCodeLines; i++) {
             double angle = baseAngle + (spreadAngle * i / (numCodeLines - 1));
 
-            double vx = Math.cos(angle) * 180;
-            double vy = Math.sin(angle) * 180;
+            double vx = Math.cos(angle) * 120;
+            double vy = Math.sin(angle) * 120;
 
             Projectile codeLine = new Projectile(centerX, centerY, vx, vy, Projectile.ProjectileType.BOUNCING);
             codeLine.setMaxLifetime(3.0);
@@ -181,8 +181,8 @@ public class Boss3 extends Boss {
         double baseAngle = Math.PI - spreadAngle / 2;
         for (int i = 0; i < projectiles; i++) {
             double angle = baseAngle + (spreadAngle * i / (projectiles - 1));
-            double vx = Math.cos(angle) * 300;
-            double vy = Math.sin(angle) * 300;
+            double vx = Math.cos(angle) * 200;
+            double vy = Math.sin(angle) * 200;
 
             Projectile codeProjectile = new Projectile(compileX, compileY, vx, vy, Projectile.ProjectileType.STRAIGHT);
             codeProjectile.setMaxLifetime(2.0);

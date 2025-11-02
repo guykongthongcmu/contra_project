@@ -18,8 +18,8 @@ public class Boss1 extends Boss {
     private Sprite aliveSprite;
     private Sprite deadSprite;
 
-    private static final double WIDTH_SCALE = 1.0;
-    private static final double HEIGHT_SCALE = 1.0;
+    private static final double WIDTH_SCALE = 1.9;
+    private static final double HEIGHT_SCALE = 1.9;
 
     private static final double BOSS_WIDTH = 112 * WIDTH_SCALE;
     private static final double BOSS_HEIGHT = 192 * HEIGHT_SCALE;
