@@ -17,6 +17,11 @@ public class Player extends Entity {
     private static final double JUMP_FORCE = -400.0; // negative for upward
     private static final double GRAVITY = 800.0; // pixels per second squared
 
+    private static final double PRONE_WIDTH_FACTOR = 0.95;
+    private static final double PRONE_HEIGHT_FACTOR = 0.5;
+    private static final double STANDING_BULLET_HEIGHT_FACTOR = 0.45;
+    private static final double PRONE_BULLET_HEIGHT_FACTOR = 0.8;
+
     private Sprite sprite;
     private SpriteAnimation idleAnimation;
     private SpriteAnimation walkAnimation;
@@ -30,6 +35,12 @@ public class Player extends Entity {
     private double shootCooldown;
     private static final double SHOOT_COOLDOWN_TIME = 0.5; // seconds between shots
     private double groundLevel = 400.0;
+
+    private double standingWidth;
+    private double standingHeight;
+    private double proneWidth;
+    private double proneHeight;
+    private boolean hitboxInitialized;
 
     public Player(double x, double y) {
         super(x, y, PLAYER_WIDTH, PLAYER_HEIGHT);
@@ -178,7 +189,8 @@ public class Player extends Entity {
         if (shootCooldown <= 0) {
             double muzzleOffsetX = facingRight ? this.width - 6 : -6;
             double bulletX = this.position.getX() + muzzleOffsetX;
-            double bulletY = this.position.getY() + this.height * 0.45;
+            double verticalFactor = prone ? PRONE_BULLET_HEIGHT_FACTOR : STANDING_BULLET_HEIGHT_FACTOR;
+            double bulletY = this.position.getY() + this.height * verticalFactor;
             Bullet bullet = new Bullet(bulletX, bulletY, facingRight, true);
             shootCooldown = SHOOT_COOLDOWN_TIME;
             GameLogger.logAction(
@@ -220,9 +232,22 @@ public class Player extends Entity {
     public void setSprite(Sprite sprite) {
         this.sprite = sprite;
         if (sprite != null) {
-            this.width = sprite.getWidth();
-            this.height = sprite.getHeight();
-            sprite.setPosition(this.position.getX(), this.position.getY());
+            double spriteWidth = sprite.getWidth();
+            double spriteHeight = sprite.getHeight();
+            if (!hitboxInitialized || !prone) {
+                standingWidth = spriteWidth;
+                standingHeight = spriteHeight;
+                proneWidth = standingWidth * PRONE_WIDTH_FACTOR;
+                proneHeight = standingHeight * PRONE_HEIGHT_FACTOR;
+                hitboxInitialized = true;
+            }
+
+            double targetWidth = prone ? proneWidth : standingWidth;
+            double targetHeight = prone ? proneHeight : standingHeight;
+
+            this.width = targetWidth;
+            this.height = targetHeight;
+            applyHitboxForState(prone);
         }
     }
 
@@ -288,6 +313,7 @@ public class Player extends Entity {
             return;
         }
         this.prone = value;
+        applyHitboxForState(value);
         if (prone) {
             this.setVelocity(0, this.velocity.getY());
             playProneAnimation();
@@ -308,6 +334,33 @@ public class Player extends Entity {
                     "Player exited prone | pos=(%.2f, %.2f)",
                     position.getX(), position.getY()
             );
+        }
+    }
+
+    private void ensureHitboxDimensions() {
+        if (hitboxInitialized) {
+            return;
+        }
+        double baseWidth = sprite != null ? sprite.getWidth() : this.width;
+        double baseHeight = sprite != null ? sprite.getHeight() : this.height;
+        standingWidth = baseWidth;
+        standingHeight = baseHeight;
+        proneWidth = standingWidth * PRONE_WIDTH_FACTOR;
+        proneHeight = standingHeight * PRONE_HEIGHT_FACTOR;
+        hitboxInitialized = true;
+    }
+
+    private void applyHitboxForState(boolean toProne) {
+        ensureHitboxDimensions();
+        double targetWidth = toProne ? proneWidth : standingWidth;
+        double targetHeight = toProne ? proneHeight : standingHeight;
+        double bottom = this.position.getY() + this.height;
+        this.width = targetWidth;
+        this.height = targetHeight;
+        double newY = bottom - targetHeight;
+        this.setPosition(this.position.getX(), newY);
+        if (sprite != null) {
+            sprite.setPosition(this.position.getX(), newY);
         }
     }
 
